@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Koperasi Artha Sejati - Daftar Anggota</title>
+    <meta content="Member Management for Koperasi Artha Sejati" name="description" />
+    <meta content="koperasi, members, dashboard, finance" name="keywords" />
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/logo.png') }}" type="image/x-icon">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- js-cookie -->
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/anggota.css') }}" />
+</head>
+
+<body>
+    <div class="sidebar" id="sidebar">
+        <img class="logo" src="/static/images/LAMBANG-KOPERASI.png" alt="Koperasi Logo">
+        <h2>Koperasi Artha Sejati</h2>
+        <ul>
+            <li><a href="/dashboard" title="Dashboard">
+                    <i class="bi bi-grid-fill"></i>
+                    <span class="nav-text">Dashboard</span></a>
+            </li>
+            <li><a href="/anggota" class="active" aria-current="page" title="Members">
+                    <i class="bi bi-people-fill"></i>
+                    <span class="nav-text">Anggota</span></a>
+            </li>
+            <li><a href="/savings" title="Savings">
+                    <i class="bi bi-piggy-bank-fill"></i>
+                    <span class="nav-text">Simpanan</span></a>
+            </li>
+            <li><a href="/loans" title="Loans">
+                    <i class="bi bi-cash-coin"></i>
+                    <span class="nav-text">Pinjaman</span></a>
+            </li>
+            <li><a href="/payments" title="Payments">
+                    <i class="bi bi-credit-card-2-back-fill"></i>
+                    <span class="nav-text">Pembayaran</span></a>
+            </li>
+            <!-- Create Bendahara -->
+            <li><a href="/create_bendahara" title="Bendahara">
+                    <i class="bi bi-person-plus-fill"></i>
+                    <span class="nav-text">Bendahara</span></a>
+            </li>
+            <li>
+                <a href="javascript:void(0);" id="logoutButton" title="Logout">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span class="nav-text">Logout</span></a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <div class="main-content">
+        <header class="topbar">
+            <div class="topbar-controls">
+                <button class="menu-toggle" aria-label="Toggle navigation" onclick="toggleSidebar()"><i
+                        class="bi bi-list"></i></button>
+            </div>
+            <h1 class="dashboard-header">Daftar Anggota</h1>
+            <div class="theme-toggle">
+                <input type="checkbox" id="themeSwitch" onchange="toggleTheme()">
+                <label for="themeSwitch"><i class="bi bi-moon-stars-fill"></i></label>
+            </div>
+        </header>
+
+        <section class="table-container" aria-label="Member overview">
+            <div class="search-bar">
+                <input type="text" id="memberSearch" aria-label="Search members by name" placeholder="Search members..."
+                    oninput="filterMembers()" />
+            </div>
+            <table role="grid" id="membersTable">
+                <thead>
+                    <tr>
+                        <th scope="col">ID</th>
+                        <th scope="col">Nama</th>
+                        <th scope="col">NIK</th>
+                        <th scope="col">Tanggal Bergabung</th>
+                        <th scope="col">No. Telepon</th>
+                        <th scope="col" class="text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users if user.level == 2 %}
+                    <tr>
+                        <td>{{ user.user_id }}</td>
+                        <td>{{ user.profile_name }}</td>
+                        <td>{{ user.nik }}</td>
+                        <td>{{ user.datejoin }}</td>
+                        <td>{{ user.phone }}</td>
+                        <td class="text-center">
+                            <button onclick="location.href='/anggota/{{ user['username'] }}'"
+                                class="action-btn btn-detail" title="Detail">
+                                <i class="bi bi-eye"></i>
+                                <span class="tooltip-text">Detail</span>
+                            </button>
+                            <button onclick="deleteUser('{{ user['username'] }}')" class="action-btn btn-delete"
+                                title="Delete">
+                                <i class="bi bi-trash"></i>
+                                <span class="tooltip-text">Delete</span>
+                            </button>
+                            {% if user.get('blocked') %}
+                            <button onclick="unblockUser('{{ user['username'] }}')" class="action-btn btn-block"
+                                title="Unblock">
+                                <i class="bi bi-unlock"></i>
+                                <span class="tooltip-text">Unblock</span>
+                            </button>
+                            {% else %}
+                            <button onclick="blockUser('{{ user['username'] }}')" class="action-btn btn-block"
+                                title="Block">
+                                <i class="bi bi-lock"></i>
+                                <span class="tooltip-text">Block</span>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="pagination" id="pagination"></div>
+        </section>
+    </div>
+
+    <script>
+        // Pagination
+        document.addEventListener('DOMContentLoaded', function () {
+            const table = document.getElementById('membersTable');
+            const rows = table.querySelectorAll('tbody tr');
+            const rowsPerPage = 5;
+            const pagination = document.getElementById('pagination');
+            let currentPage = 1;
+
+            function displayRows() {
+                const startIndex = (currentPage - 1) * rowsPerPage;
+                const endIndex = startIndex + rowsPerPage;
+
+                rows.forEach((row, index) => {
+                    row.style.display = (index >= startIndex && index < endIndex) ? '' : 'none';
+                });
+            }
+
+            function setupPagination() {
+                const pageCount = Math.ceil(rows.length / rowsPerPage);
+                pagination.innerHTML = '';
+
+                const prevButton = document.createElement('button');
+                prevButton.textContent = 'Previous';
+                prevButton.addEventListener('click', () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        displayRows();
+                        updatePaginationButtons();
+                    }
+                });
+                pagination.appendChild(prevButton);
+
+                for (let i = 1; i <= pageCount; i++) {
+                    const button = document.createElement('button');
+                    button.textContent = i;
+                    button.addEventListener('click', () => {
+                        currentPage = i;
+                        displayRows();
+                        updatePaginationButtons();
+                    });
+                    pagination.appendChild(button);
+                }
+
+                const nextButton = document.createElement('button');
+                nextButton.textContent = 'Next';
+                nextButton.addEventListener('click', () => {
+                    if (currentPage < pageCount) {
+                        currentPage++;
+                        displayRows();
+                        updatePaginationButtons();
+                    }
+                });
+                pagination.appendChild(nextButton);
+
+                updatePaginationButtons();
+            }
+
+            function updatePaginationButtons() {
+                const buttons = pagination.querySelectorAll('button');
+                buttons.forEach((button, index) => {
+                    if (index === 0) {
+                        button.disabled = currentPage === 1;
+                    } else if (index === buttons.length - 1) {
+                        button.disabled = currentPage === Math.ceil(rows.length / rowsPerPage);
+                    } else if (index === currentPage) {
+                        button.classList.add('active');
+                    } else {
+                        button.classList.remove('active');
+                    }
+                });
+            }
+
+            displayRows();
+            setupPagination();
+        });
+
+        // Filter members
+        function filterMembers() {
+            const input = document.getElementById('memberSearch');
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById('membersTable');
+            const trs = table.tBodies[0].getElementsByTagName('tr');
+
+            for (let i = 0; i < trs.length; i++) {
+                const tdName = trs[i].getElementsByTagName('td')[1];
+                if (tdName) {
+                    let txtValue = tdName.textContent || tdName.innerText;
+                    trs[i].style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? '' : 'none';
+                }
+            }
+
+            // Reset pagination after filtering
+            currentPage = 1;
+            displayRows();
+            setupPagination();
+        }
+
+        // Logout
+        function logout() {
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: "Anda akan keluar!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#2ecc71',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Ya, keluar!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    try {
+                        Cookies.remove('mytoken');
+                        Cookies.remove('mytoken', { path: '/' });
+                        document.cookie = "mytoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                        Swal.fire(
+                            'Keluar!',
+                            'Anda telah berhasil keluar.',
+                            'success'
+                        ).then(() => {
+                            window.location.href = '/';
+                        });
+                    } catch (error) {
+                        console.error("Error during logout:", error);
+                        window.location.href = '/';
+                    }
+                }
+            });
+        }
+
+        // Delete user
+        function deleteUser(username) {
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: "Anda akan menghapus pengguna ini!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#2ecc71',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Ya, hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/delete_user/' + username,
+                        type: 'DELETE',
+                        success: function (response) {
+                            if (response.result === 'success') {
+                                Swal.fire('Dihapus!', response.msg, 'success').then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire('Gagal!', response.msg, 'error');
+                            }
+                        },
+                        error: function () {
+                            Swal.fire('Gagal!', 'Terjadi kesalahan saat menghapus pengguna.', 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        // Block user
+        function blockUser(username) {
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: "Anda akan memblokir pengguna ini!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#2ecc71',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Ya, blokir!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/blockuser',
+                        type: 'POST',
+                        data: {
+                            username_give: username,
+                            reason_give: 'Violation of terms',
+                            date_give: new Date().toISOString()
+                        },
+                        success: function (response) {
+                            if (response.result === 'success') {
+                                Swal.fire('Diblokir!', response.msg, 'success').then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire('Gagal!', response.msg, 'error');
+                            }
+                        },
+                        error: function () {
+                            Swal.fire('Gagal!', 'Terjadi kesalahan saat memblokir pengguna.', 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        // Unblock user
+        function unblockUser(username) {
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: "Anda akan membuka blokir pengguna ini!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#2ecc71',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Ya, buka blokir!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/unblockuser',
+                        type: 'POST',
+                        data: {
+                            username_give: username
+                        },
+                        success: function (response) {
+                            if (response.result === 'success') {
+                                Swal.fire('Dibuka!', response.msg, 'success').then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire('Gagal!', response.msg, 'error');
+                            }
+                        },
+                        error: function () {
+                            Swal.fire('Gagal!', 'Terjadi kesalahan saat membuka blokir pengguna.', 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        // Toggle sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('show');
+        }
+
+        // Toggle sidebar collapse
+        function toggleCollapse() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            const body = document.body;
+            const themeSwitch = document.getElementById('themeSwitch');
+            if (themeSwitch.checked) {
+                body.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Load saved theme
+        document.addEventListener('DOMContentLoaded', function () {
+            const savedTheme = localStorage.getItem('theme');
+            const themeSwitch = document.getElementById('themeSwitch');
+            if (savedTheme === 'dark') {
+                document.body.setAttribute('data-theme', 'dark');
+                themeSwitch.checked = true;
+            }
+            document.getElementById('logoutButton').addEventListener('click', logout);
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
+        integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.min.js"
+        integrity="sha384-RuyvpeZCxMJCqVUGFI0Do1mQrods/hhxYlcVfGPOfQtPJh0JCw12tUAZ/Mv10S7D"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</body>
+
+</html>

@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Koperasi Artha Sejati - Buat Akun Bendahara</title>
+    <meta content="Create Treasurer Account for Koperasi Artha Sejati" name="description" />
+    <meta content="koperasi, treasurer, admin, create account" name="keywords" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- js-cookie -->
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #2ecc71;
+            /* Green */
+            --secondary-color: #f1f5f9;
+            /* Light background */
+            --text-color: #1a3c34;
+            /* Dark green text */
+            --accent-teal: #0d9488;
+            /* Teal */
+            --accent-orange: #f97316;
+            /* Orange */
+            --accent-purple: #8b5cf6;
+            /* Purple */
+            --danger-color: #ef4444;
+            /* Red */
+            --warning-color: #f59e0b;
+            /* Yellow */
+            --success-color: #10b981;
+            /* Green */
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.3);
+        }
+
+        [data-theme="dark"] {
+            --secondary-color: #1e293b;
+            --text-color: #d1d5db;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 280px;
+            height: 100%;
+            background: #d4d2d23d;
+            backdrop-filter: blur(8px);
+            border-right: 1px solid var(--glass-border);
+            transition: left 0.3s ease, width 0.3s ease;
+            z-index: 1000;
+            padding: 1.5rem 1rem;
+            overflow-y: auto;
+        }
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .sidebar.collapsed {
+            width: 80px;
+        }
+
+        .sidebar.collapsed .logo,
+        .sidebar.collapsed h2,
+        .sidebar.collapsed .nav-text {
+            display: none;
+        }
+
+        .sidebar.collapsed ul li a {
+            justify-content: center;
+            padding: 0.75rem;
+        }
+
+        .sidebar .logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid var(--primary-color);
+            margin: 0 auto 1rem;
+            display: block;
+        }
+
+        .sidebar h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar ul {
+            list-style: none;
+        }
+
+        .sidebar ul li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar ul li a {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: var(--text-color);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .sidebar ul li a:hover,
+        .sidebar ul li a.active {
+            background: var(--primary-color);
+            color: #ffffff;
+        }
+
+        .sidebar ul li a i {
+            margin-right: 0.75rem;
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        .sidebar.collapsed ul li a i {
+            margin-right: 0;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+            z-index: 999;
+        }
+
+        .overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 0;
+            padding: 1.5rem;
+            transition: margin-left 0.3s ease;
+        }
+
+        @media (min-width: 992px) {
+            .sidebar {
+                left: 0;
+            }
+
+            .main-content {
+                margin-left: 280px;
+            }
+
+            .sidebar.collapsed~.main-content {
+                margin-left: 80px;
+            }
+
+            .overlay {
+                display: none;
+            }
+        }
+
+        /* Topbar */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--glass-bg);
+            backdrop-filter: blur(8px);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--glass-border);
+        }
+
+        .topbar-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .menu-toggle,
+        .collapse-toggle {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--text-color);
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+
+        .menu-toggle:hover,
+        .collapse-toggle:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+        }
+
+        .theme-toggle input {
+            display: none;
+        }
+
+        .theme-toggle label {
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: var(--text-color);
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+
+        .theme-toggle label:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        @media (min-width: 992px) {
+            .menu-toggle {
+                display: none;
+            }
+        }
+
+        .dashboard-header {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1.25rem;
+        }
+
+        /* Form Container */
+        .form-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(8px);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            margin-bottom: 1.5rem;
+        }
+
+        .form-container h3 {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            box-shadow: 0 0 0 2px var(--primary-color);
+            outline: none;
+        }
+
+        .form-group .error {
+            color: var(--danger-color);
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .btn-submit {
+            background: var(--primary-color);
+            color: #ffffff;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .btn-submit:hover {
+            background: var(--accent-teal);
+        }
+
+        .btn-submit:disabled {
+            background: rgba(255, 255, 255, 0.3);
+            cursor: not-allowed;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .dashboard-header {
+                font-size: 1.25rem;
+            }
+
+            .form-container {
+                padding: 1rem;
+            }
+
+            .topbar {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .topbar-controls {
+                order: -1;
+            }
+
+            .dashboard-header {
+                order: 0;
+                flex: 1;
+            }
+
+            .theme-toggle {
+                order: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar" id="sidebar">
+        <img class="logo" src="/static/images/LAMBANG-KOPERASI.png" alt="Koperasi Logo">
+        <h2>Koperasi Artha Sejati</h2>
+        <ul>
+            <li><a href="/dashboard" title="Dashboard">
+                    <i class="bi bi-grid-fill"></i>
+                    <span class="nav-text">Dashboard</span></a>
+            </li>
+            <li><a href="/anggota" aria-current="page" title="Members">
+                    <i class="bi bi-people-fill"></i>
+                    <span class="nav-text">Anggota</span></a>
+            </li>
+            <li><a href="/savings" title="Savings">
+                    <i class="bi bi-piggy-bank-fill"></i>
+                    <span class="nav-text">Simpanan</span></a>
+            </li>
+            <li><a href="/loans" title="Loans">
+                    <i class="bi bi-cash-coin"></i>
+                    <span class="nav-text">Pinjaman</span></a>
+            </li>
+            <li><a href="/payments" title="Payments">
+                    <i class="bi bi-credit-card-2-back-fill"></i>
+                    <span class="nav-text">Pembayaran</span></a>
+            </li>
+            <!-- Create Bendahara -->
+            <li><a href="/create_bendahara" class="active" title="Bendahara">
+                    <i class="bi bi-person-plus-fill"></i>
+                    <span class="nav-text">Bendahara</span></a>
+            </li>
+            <li>
+                <a href="javascript:void(0);" id="logoutButton" title="Logout">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span class="nav-text">Logout</span></a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <div class="main-content">
+        <header class="topbar">
+            <div class="topbar-controls">
+                <button class="menu-toggle" aria-label="Toggle navigation" onclick="toggleSidebar()"><i
+                        class="bi bi-list"></i></button>
+            </div>
+            <h1 class="dashboard-header">Buat Akun Bendahara</h1>
+            <div class="theme-toggle">
+                <input type="checkbox" id="themeSwitch" onchange="toggleTheme()">
+                <label for="themeSwitch"><i class="bi bi-moon-stars-fill"></i></label>
+            </div>
+        </header>
+
+        <section class="form-container" aria-label="Create treasurer form">
+            <h3>Formulir Pembuatan Akun Bendahara</h3>
+            <form id="createTreasurerForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="nik">NIK</label>
+                    <input type="text" id="nik" name="nik_give" required placeholder="Masukkan NIK" pattern="[0-9]{16}"
+                        title="NIK harus 16 digit angka">
+                    <div class="error" id="nikError">NIK harus 16 digit angka.</div>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email_give" required placeholder="Masukkan email">
+                    <div class="error" id="emailError">Email sudah terdaftar atau tidak valid.</div>
+                </div>
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username_give" required placeholder="Masukkan username">
+                    <div class="error" id="usernameError">Username sudah terdaftar.</div>
+                </div>
+                <div class="form-group">
+                    <label for="password">Kata Sandi</label>
+                    <input type="password" id="password" name="password_give" required
+                        placeholder="Masukkan kata sandi">
+                    <div class="error" id="passwordError">Kata sandi harus 8-20 karakter, mengandung huruf dan angka.
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="fullname">Nama Lengkap</label>
+                    <input type="text" id="fullname" name="fullname_give" required placeholder="Masukkan nama lengkap">
+                    <div class="error" id="fullnameError">Nama lengkap diperlukan.</div>
+                </div>
+                <div class="form-group">
+                    <label for="birthdate">Tanggal Lahir</label>
+                    <input type="date" id="birthdate" name="birthdate_give" required>
+                    <div class="error" id="birthdateError">Tanggal lahir diperlukan.</div>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Nomor Telepon</label>
+                    <input type="tel" id="phone" name="phone_give" required placeholder="Masukkan nomor telepon"
+                        pattern="[0-9]{10,13}" title="Nomor telepon harus 10-13 digit angka">
+                    <div class="error" id="phoneError">Nomor telepon harus 10-13 digit angka.</div>
+                </div>
+                <div class="form-group">
+                    <label for="gender">Jenis Kelamin</label>
+                    <select id="gender" name="gender_give" required>
+                        <option value="" disabled selected>Pilih jenis kelamin</option>
+                        <option value="Laki-laki">Laki-laki</option>
+                        <option value="Perempuan">Perempuan</option>
+                    </select>
+                    <div class="error" id="genderError">Jenis kelamin diperlukan.</div>
+                </div>
+                <button type="submit" class="btn-submit" id="submitButton">Buat Akun</button>
+            </form>
+        </section>
+    </div>
+
+    <script>
+        // Toggle sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('show');
+        }
+
+        // Toggle sidebar collapse
+        function toggleCollapse() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            const body = document.body;
+            const themeSwitch = document.getElementById('themeSwitch');
+            if (themeSwitch.checked) {
+                body.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Load saved theme
+        document.addEventListener('DOMContentLoaded', function () {
+            const savedTheme = localStorage.getItem('theme');
+            const themeSwitch = document.getElementById('themeSwitch');
+            if (savedTheme === 'dark') {
+                document.body.setAttribute('data-theme', 'dark');
+                themeSwitch.checked = true;
+            }
+            document.getElementById('logoutButton').addEventListener('click', logout);
+        });
+
+        // Logout
+        function logout() {
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: "Anda akan keluar!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#2ecc71',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Ya, keluar!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    try {
+                        Cookies.remove('mytoken');
+                        Cookies.remove('mytoken', { path: '/' });
+                        document.cookie = "mytoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                        Swal.fire(
+                            'Keluar!',
+                            'Anda telah berhasil keluar.',
+                            'success'
+                        ).then(() => {
+                            window.location.href = '/logout';
+                        });
+                    } catch (error) {
+                        console.error("Error during logout:", error);
+                        window.location.href = '/logout';
+                    }
+                }
+            });
+        }
+
+        // Form validation and submission
+        $(document).ready(function () {
+            const form = $('#createTreasurerForm');
+            const submitButton = $('#submitButton');
+
+            // Client-side validation
+            function validateForm() {
+                let isValid = true;
+                const passwordPattern = /^(?=.*\d)(?=.*[a-zA-Z])[0-9a-zA-Z!@#$%^&*]{8,20}$/;
+                const nikPattern = /^[0-9]{16}$/;
+                const phonePattern = /^[0-9]{10,13}$/;
+
+                // Reset error messages
+                $('.error').hide();
+
+                // Validate NIK
+                const nik = $('#nik').val().trim();
+                if (!nikPattern.test(nik)) {
+                    $('#nikError').show();
+                    isValid = false;
+                }
+
+                // Validate email (basic format)
+                const email = $('#email').val().trim();
+                if (!email.includes('@') || !email.includes('.')) {
+                    $('#emailError').text('Email tidak valid.').show();
+                    isValid = false;
+                }
+
+                // Validate username
+                const username = $('#username').val().trim();
+                if (username.length < 3) {
+                    $('#usernameError').text('Username minimal 3 karakter.').show();
+                    isValid = false;
+                }
+
+                // Validate password
+                const password = $('#password').val();
+                if (!passwordPattern.test(password)) {
+                    $('#passwordError').show();
+                    isValid = false;
+                }
+
+                // Validate full name
+                const fullname = $('#fullname').val().trim();
+                if (fullname.length < 2) {
+                    $('#fullnameError').show();
+                    isValid = false;
+                }
+
+                // Validate birthdate
+                const birthdate = $('#birthdate').val();
+                if (!birthdate) {
+                    $('#birthdateError').show();
+                    isValid = false;
+                }
+
+                // Validate phone
+                const phone = $('#phone').val().trim();
+                if (!phonePattern.test(phone)) {
+                    $('#phoneError').show();
+                    isValid = false;
+                }
+
+                // Validate gender
+                const gender = $('#gender').val();
+                if (!gender) {
+                    $('#genderError').show();
+                    isValid = false;
+                }
+
+                return isValid;
+            }
+
+            // Check duplicate username
+            $('#username').on('blur', function () {
+                const username = $(this).val().trim();
+                if (username.length >= 3) {
+                    $.ajax({
+                        url: '/register/check_dup',
+                        method: 'POST',
+                        data: { username_give: username },
+                        success: function (response) {
+                            if (response.exists) {
+                                $('#usernameError').text('Username sudah terdaftar.').show();
+                                submitButton.prop('disabled', true);
+                            } else {
+                                $('#usernameError').hide();
+                                submitButton.prop('disabled', false);
+                            }
+                        },
+                        error: function () {
+                            $('#usernameError').text('Gagal memeriksa username.').show();
+                        }
+                    });
+                }
+            });
+
+            // Check duplicate email
+            $('#email').on('blur', function () {
+                const email = $(this).val().trim();
+                if (email.includes('@') && email.includes('.')) {
+                    $.ajax({
+                        url: '/register/check_dup', // Reusing check_dup for email
+                        method: 'POST',
+                        data: { email_give: email },
+                        success: function (response) {
+                            if (response.exists) {
+                                $('#emailError').text('Email sudah terdaftar.').show();
+                                submitButton.prop('disabled', true);
+                            } else {
+                                $('#emailError').hide();
+                                submitButton.prop('disabled', false);
+                            }
+                        },
+                        error: function () {
+                            $('#emailError').text('Gagal memeriksa email.').show();
+                        }
+                    });
+                }
+            });
+
+            // Form submission
+            form.on('submit', function (e) {
+                e.preventDefault();
+                if (!validateForm()) {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Silakan periksa input Anda.',
+                        icon: 'error',
+                        confirmButtonColor: '#2ecc71'
+                    });
+                    return;
+                }
+
+                submitButton.prop('disabled', true).text('Memproses...');
+
+                const formData = new FormData(this);
+                $.ajax({
+                    url: '/create_treasurer',
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        submitButton.prop('disabled', false).text('Buat Akun');
+                        if (response.result === 'success') {
+                            Swal.fire({
+                                title: 'Sukses!',
+                                text: response.msg || 'Akun bendahara berhasil dibuat!',
+                                icon: 'success',
+                                confirmButtonColor: '#2ecc71'
+                            }).then(() => {
+                                window.location.href = '/dashboard';
+                                form[0].reset();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.msg || 'Gagal membuat akun bendahara.',
+                                icon: 'error',
+                                confirmButtonColor: '#2ecc71'
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        submitButton.prop('disabled', false).text('Buat Akun');
+                        let errorMsg = 'Terjadi kesalahan saat membuat akun.';
+                        if (xhr.responseJSON && xhr.responseJSON.msg) {
+                            errorMsg = xhr.responseJSON.msg;
+                        }
+                        Swal.fire({
+                            title: 'Error!',
+                            text: errorMsg,
+                            icon: 'error',
+                            confirmButtonColor: '#2ecc71'
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
+        integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.min.js"
+        integrity="sha384-RuyvpeZCxMJCqVUGFI0Do1mQrods/hhxYlcVfGPOfQtPJh0JCw12tUAZ/Mv10S7D"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</body>
+
+</html>

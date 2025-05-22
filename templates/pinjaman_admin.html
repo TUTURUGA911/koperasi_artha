@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Koperasi Artha Sejati - Daftar Pinjaman</title>
+    <meta content="Loan Management for Koperasi Artha Sejati" name="description" />
+    <meta content="koperasi, loans, dashboard, finance" name="keywords" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- js-cookie -->
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #2ecc71;
+            /* Green */
+            --secondary-color: #f1f5f9;
+            /* Light background */
+            --text-color: #1a3c34;
+            /* Dark green text */
+            --accent-teal: #0d9488;
+            /* Teal */
+            --accent-orange: #f97316;
+            /* Orange */
+            --accent-purple: #8b5cf6;
+            /* Purple */
+            --danger-color: #ef4444;
+            /* Red */
+            --warning-color: #f59e0b;
+            /* Yellow */
+            --success-color: #10b981;
+            /* Bright green */
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.3);
+        }
+
+        [data-theme="dark"] {
+            --secondary-color: #1e293b;
+            --text-color: #d1d5db;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 280px;
+            height: 100%;
+            background: #d4d2d23d;
+            backdrop-filter: blur(8px);
+            border-right: 1px solid var(--glass-border);
+            transition: left 0.3s ease, width 0.3s ease;
+            z-index: 1000;
+            padding: 1.5rem 1rem;
+            overflow-y: auto;
+        }
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .sidebar.collapsed {
+            width: 80px;
+        }
+
+        .sidebar.collapsed .logo,
+        .sidebar.collapsed h2,
+        .sidebar.collapsed .nav-text {
+            display: none;
+        }
+
+        .sidebar.collapsed ul li a {
+            justify-content: center;
+            padding: 0.75rem;
+        }
+
+        .sidebar .logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid var(--primary-color);
+            margin: 0 auto 1rem;
+            display: block;
+        }
+
+        .sidebar h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar ul {
+            list-style: none;
+        }
+
+        .sidebar ul li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar ul li a {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: var(--text-color);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .sidebar ul li a:hover,
+        .sidebar ul li a.active {
+            background: var(--primary-color);
+            color: #ffffff;
+        }
+
+        .sidebar ul li a i {
+            margin-right: 0.75rem;
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        .sidebar.collapsed ul li a i {
+            margin-right: 0;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+            z-index: 999;
+        }
+
+        .overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 0;
+            padding: 1.5rem;
+            transition: margin-left 0.3s ease;
+        }
+
+        @media (min-width: 992px) {
+            .sidebar {
+                left: 0;
+            }
+
+            .main-content {
+                margin-left: 280px;
+            }
+
+            .sidebar.collapsed~.main-content {
+                margin-left: 80px;
+            }
+
+            .overlay {
+                display: none;
+            }
+        }
+
+        /* Topbar */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--glass-bg);
+            backdrop-filter: blur(8px);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--glass-border);
+        }
+
+        .topbar-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .menu-toggle,
+        .collapse-toggle {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--text-color);
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+
+        .menu-toggle:hover,
+        .collapse-toggle:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+        }
+
+        .theme-toggle input {
+            display: none;
+        }
+
+        .theme-toggle label {
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: var(--text-color);
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+
+        .theme-toggle label:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        @media (min-width: 992px) {
+            .menu-toggle {
+                display: none;
+            }
+        }
+
+        .dashboard-header {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1.25rem;
+        }
+
+        /* Table Container */
+        .table-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(8px);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            margin-bottom: 1.5rem;
+        }
+
+        .table-container h3 {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .search-bar {
+            margin-bottom: 1rem;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .search-bar input:focus {
+            box-shadow: 0 0 0 2px var(--primary-color);
+            outline: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        th,
+        td {
+            padding: 0.75rem;
+            text-align: left;
+            font-size: 0.85rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        th {
+            background: var(--glass-bg);
+            font-weight: 500;
+            color: var(--text-color);
+            position: sticky;
+            top: 0;
+        }
+
+        td.text-center {
+            text-align: center;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-block;
+            line-height: 1;
+        }
+
+        .badge.pending {
+            background: var(--warning-color);
+            color: #ffffff;
+        }
+
+        .badge.active {
+            background: var(--success-color);
+            color: #ffffff;
+        }
+
+        .badge.completed {
+            background: var(--accent-purple);
+            color: #ffffff;
+        }
+
+        .badge.rejected {
+            background: var(--danger-color);
+            color: #ffffff;
+        }
+
+        /* Action Buttons */
+        .action-btn {
+            background: none;
+            border: none;
+            padding: 0.5rem;
+            margin: 0 0.25rem;
+            cursor: pointer;
+            color: var(--text-color);
+            transition: color 0.2s ease, background 0.2s ease;
+            position: relative;
+            border-radius: 6px;
+        }
+
+        .action-btn:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-detail i {
+            color: var(--primary-color);
+        }
+
+        .btn-delete i {
+            color: var(--danger-color);
+        }
+
+        .action-btn .tooltip-text {
+            visibility: hidden;
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--text-color);
+            color: #ffffff;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .action-btn:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Status Dropdown */
+        .status-select {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem;
+            color: var(--text-color);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: box-shadow 0.2s ease;
+        }
+
+        .status-select:focus {
+            box-shadow: 0 0 0 2px var(--primary-color);
+            outline: none;
+        }
+
+        .status-select option {
+            background: var(--secondary-color);
+            color: var(--text-color);
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .pagination button {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-color);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .pagination button:hover {
+            background: var(--primary-color);
+            color: #ffffff;
+        }
+
+        .pagination button.active {
+            background: var(--primary-color);
+            color: #ffffff;
+            border-color: var(--primary-color);
+        }
+
+        .pagination button:disabled {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.3);
+            cursor: not-allowed;
+            border-color: var(--glass-border);
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .dashboard-header {
+                font-size: 1.25rem;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+
+            .topbar {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .topbar-controls {
+                order: -1;
+            }
+
+            .dashboard-header {
+                order: 0;
+                flex: 1;
+            }
+
+            .theme-toggle {
+                order: 1;
+            }
+
+            .status-select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar" id="sidebar">
+        <img class="logo" src="/static/images/LAMBANG-KOPERASI.png" alt="Koperasi Logo">
+        <h2>Koperasi Artha Sejati</h2>
+        <ul>
+            <li><a href="/dashboard" title="Dashboard">
+                    <i class="bi bi-grid-fill"></i>
+                    <span class="nav-text">Dashboard</span></a>
+            </li>
+            <li><a href="/anggota" aria-current="page" title="Members">
+                    <i class="bi bi-people-fill"></i>
+                    <span class="nav-text">Anggota</span></a>
+            </li>
+            <li><a href="/savings" title="Savings">
+                    <i class="bi bi-piggy-bank-fill"></i>
+                    <span class="nav-text">Simpanan</span></a>
+            </li>
+            <li><a href="/loans" class="active" title="Loans">
+                    <i class="bi bi-cash-coin"></i>
+                    <span class="nav-text">Pinjaman</span></a>
+            </li>
+            <li><a href="/payments" title="Payments">
+                    <i class="bi bi-credit-card-2-back-fill"></i>
+                    <span class="nav-text">Pembayaran</span></a>
+            </li>
+            <!-- Create Bendahara -->
+            <li><a href="/create_bendahara" title="Bendahara">
+                    <i class="bi bi-person-plus-fill"></i>
+                    <span class="nav-text">Bendahara</span></a>
+            </li>
+            <li>
+                <a href="javascript:void(0);" id="logoutButton" title="Logout">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span class="nav-text">Logout</span></a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <div class="main-content">
+        <header class="topbar">
+            <div class="topbar-controls">
+                <button class="menu-toggle" aria-label="Toggle navigation" onclick="toggleSidebar()"><i
+                        class="bi bi-list"></i></button>
+            </div>
+            <h1 class="dashboard-header">Daftar Pinjaman</h1>
+            <div class="theme-toggle">
+                <input type="checkbox" id="themeSwitch" onchange="toggleTheme()">
+                <label for="themeSwitch"><i class="bi bi-moon-stars-fill"></i></label>
+            </div>
+        </header>
+
+        <section class="table-container" aria-label="Loans overview">
+            <div class="search-bar">
+                <input type="text" id="loansSearch" aria-label="Search loans by member name"
+                    placeholder="Search loans..." oninput="filterLoans()" />
+            </div>
+            <table role="grid" id="loansTable">
+                <thead>
+                    <tr>
+                        <th scope="col">Loan ID</th>
+                        <th scope="col">Member Name</th>
+                        <th scope="col">Loan Amount</th>
+                        <th scope="col">Start Date</th>
+                        <th scope="col">Status</th>
+                        <th scope="col" class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for loan in loans %}
+                    <tr>
+                        <td>{{ loan.loan_id }}</td>
+                        <td>{{ loan.member_name }}</td>
+                        <td>{{ loan.amount }}</td>
+                        <td>{{ loan.start_date }}</td>
+                        <td>
+                            <span class="badge {{ loan.status.lower() }}">
+                                {{ loan.status }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <button onclick="viewLoan('{{ loan.loan_id }}')" class="action-btn btn-detail"
+                                title="View Details">
+                                <i class="bi bi-eye"></i>
+                                <span class="tooltip-text">View Details</span>
+                            </button>
+                            <select class="status-select" onchange="updateLoanStatus('{{ loan.loan_id }}', this.value)"
+                                title="Update Status">
+                                <option value="pending" {{ 'selected' if loan.status.lower()=='pending' else '' }}>
+                                    Pending</option>
+                                <option value="active" {{ 'selected' if loan.status.lower()=='active' else '' }}>Active
+                                </option>
+                                <option value="completed" {{ 'selected' if loan.status.lower()=='completed' else '' }}>
+                                    Completed</option>
+                                <option value="rejected" {{ 'selected' if loan.status.lower()=='rejected' else '' }}>
+                                    Rejected</option>
+                            </select>
+                            <button onclick="deleteLoan('{{ loan.loan_id }}')" class="action-btn btn-delete"
+                                title="Delete">
+                                <i class="bi bi-trash"></i>
+                                <span class="tooltip-text">Delete</span>
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">No loans found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="pagination" id="pagination"></div>
+        </section>
+    </div>
+
+    <script>
+        // Pagination Logic
+        document.addEventListener('DOMContentLoaded', function () {
+            const table = document.getElementById('loansTable');
+            let rows = table.querySelectorAll('tbody tr'); // All table rows
+            const rowsPerPage = 5; // Display 5 rows per page
+            const pagination = document.getElementById('pagination');
+            let currentPage = 1;
+
+            // Show rows for the current page
+            function displayRows() {
+                const startIndex = (currentPage - 1) * rowsPerPage;
+                const endIndex = startIndex + rowsPerPage;
+
+                rows.forEach((row, index) => {
+                    row.style.display = (index >= startIndex && index < endIndex) ? '' : 'none';
+                });
+            }
+
+            // Create pagination buttons
+            function setupPagination() {
+                const pageCount = Math.ceil(rows.length / rowsPerPage);
+                pagination.innerHTML = '';
+
+                // Only show pagination if there are more than 5 rows
+                if (rows.length <= rowsPerPage) {
+                    pagination.style.display = 'none';
+                    return;
+                } else {
+                    pagination.style.display = 'flex';
+                }
+
+                // Previous button
+                const prevButton = document.createElement('button');
+                prevButton.textContent = 'Previous';
+                prevButton.addEventListener('click', () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        displayRows();
+                        updatePaginationButtons();
+                    }
+                });
+                pagination.appendChild(prevButton);
+
+                // Page number buttons
+                for (let i = 1; i <= pageCount; i++) {
+                    const button = document.createElement('button');
+                    button.textContent = i;
+                    button.addEventListener('click', () => {
+                        currentPage = i;
+                        displayRows();
+                        updatePaginationButtons();
+                    });
+                    pagination.appendChild(button);
+                }
+
+                // Next button
+                const nextButton = document.createElement('button');
+                nextButton.textContent = 'Next';
+                nextButton.addEventListener('click', () => {
+                    if (currentPage < pageCount) {
+                        currentPage++;
+                        displayRows();
+                        updatePaginationButtons();
+                    }
+                });
+                pagination.appendChild(nextButton);
+
+                updatePaginationButtons();
+            }
+
+            // Update button states (active, disabled)
+            function updatePaginationButtons() {
+                const buttons = pagination.querySelectorAll('button');
+                buttons.forEach((button, index) => {
+                    if (index === 0) { // Previous
+                        button.disabled = currentPage === 1;
+                    } else if (index === buttons.length - 1) { // Next
+                        button.disabled = currentPage === Math.ceil(rows.length / rowsPerPage);
+                    } else if (index === currentPage) { // Page numbers
+                        button.classList.add('active');
+                    } else {
+                        button.classList.remove('active');
+                    }
+                });
+            }
+
+            // Initial setup
+            displayRows();
+            setupPagination();
+        });
+
+        // Filter loans and update pagination
+        function filterLoans() {
+            const input = document.getElementById('loansSearch');
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById('loansTable');
+            const trs = table.tBodies[0].getElementsByTagName('tr');
+            let visibleRows = [];
+
+            // Filter rows by member name
+            for (let i = 0; i < trs.length; i++) {
+                const tdName = trs[i].getElementsByTagName('td')[1];
+                if (tdName) {
+                    let txtValue = tdName.textContent || tdName.innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        trs[i].style.display = '';
+                        visibleRows.push(trs[i]);
+                    } else {
+                        trs[i].style.display = 'none';
+                    }
+                }
+            }
+
+            // Update rows for pagination
+            rows = visibleRows;
+            currentPage = 1;
+            displayRows();
+            setupPagination();
+        }
+
+        // View loan (placeholder)
+        function viewLoan(loanId) {
+            Swal.fire({
+                title: 'Loan Details',
+                text: `Viewing details for Loan ID: ${loanId}`,
+                icon: 'info',
+                confirmButtonColor: '#2ecc71',
+                confirmButtonText: 'OK'
+            });
+        }
+
+        // Update loan status
+        function updateLoanStatus(loanId, status) {
+            Swal.fire({
+                title: 'Confirm Status Change',
+                text: `Are you sure you want to change the status of loan ${loanId} to ${status.capitalize()}?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#2ecc71',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Yes, change!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/update_loan_status/${loanId}`,
+                        type: 'POST',
+                        data: { status: status },
+                        success: function (response) {
+                            if (response.result === 'success') {
+                                Swal.fire('Success!', response.msg, 'success').then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire('Error!', response.msg, 'error');
+                            }
+                        },
+                        error: function () {
+                            Swal.fire('Error!', 'Failed to update loan status.', 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        // Delete loan
+        function deleteLoan(loanId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: `You will delete loan with ID: ${loanId}!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#2ecc71',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Yes, delete!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/delete_loan/${loanId}`,
+                        type: 'DELETE',
+                        success: function (response) {
+                            if (response.result === 'success') {
+                                Swal.fire('Deleted!', response.msg, 'success').then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire('Error!', response.msg, 'error');
+                            }
+                        },
+                        error: function () {
+                            Swal.fire('Error!', 'Failed to delete loan.', 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        // Logout
+        function logout() {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You will be logged out!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#2ecc71',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Yes, log out!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    try {
+                        Cookies.remove('mytoken');
+                        Cookies.remove('mytoken', { path: '/' });
+                        document.cookie = "mytoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                        Swal.fire(
+                            'Logged Out!',
+                            'You have successfully logged out.',
+                            'success'
+                        ).then(() => {
+                            window.location.href = '/';
+                        });
+                    } catch (error) {
+                        console.error("Error during logout:", error);
+                        window.location.href = '/';
+                    }
+                }
+            });
+        }
+
+        // Toggle sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('show');
+        }
+
+        // Toggle sidebar collapse
+        function toggleCollapse() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            const body = document.body;
+            const themeSwitch = document.getElementById('themeSwitch');
+            if (themeSwitch.checked) {
+                body.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Load saved theme
+        document.addEventListener('DOMContentLoaded', function () {
+            const savedTheme = localStorage.getItem('theme');
+            const themeSwitch = document.getElementById('themeSwitch');
+            if (savedTheme === 'dark') {
+                document.body.setAttribute('data-theme', 'dark');
+                themeSwitch.checked = true;
+            }
+            document.getElementById('logoutButton').addEventListener('click', logout);
+        });
+
+        // Capitalize string
+        String.prototype.capitalize = function () {
+            return this.charAt(0).toUpperCase() + this.slice(1);
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
+        integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.min.js"
+        integrity="sha384-RuyvpeZCxMJCqVUGFI0Do1mQrods/hhxYlcVfGPOfQtPJh0JCw12tUAZ/Mv10S7D"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</body>
+
+</html>

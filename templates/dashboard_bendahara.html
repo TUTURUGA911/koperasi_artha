@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Koperasi Artha Sejati - Dashboard Bendahara</title>
+    <meta content="Dashboard Bendahara untuk Koperasi Artha Sejati" name="description" />
+    <meta content="koperasi, bendahara, dashboard, transaksi, laporan" name="keywords" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- js-cookie -->
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #2ecc71;
+            --secondary-color: #f1f5f9;
+            --text-color: #1a3c34;
+            --accent-teal: #0d9488;
+            --accent-orange: #f97316;
+            --accent-purple: #8b5cf6;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --success-color: #10b981;
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.3);
+        }
+
+        [data-theme="dark"] {
+            --secondary-color: #1e293b;
+            --text-color: #d1d5db;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 280px;
+            height: 100%;
+            background: #d4d2d23d;
+            backdrop-filter: blur(8px);
+            border-right: 1px solid var(--glass-border);
+            transition: left 0.3s ease, width 0.3s ease;
+            z-index: 1000;
+            padding: 1.5rem 1rem;
+            overflow-y: auto;
+        }
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .sidebar.collapsed {
+            width: 80px;
+        }
+
+        .sidebar.collapsed .logo,
+        .sidebar.collapsed h2,
+        .sidebar.collapsed .nav-text {
+            display: none;
+        }
+
+        .sidebar.collapsed ul li a {
+            justify-content: center;
+            padding: 0.75rem;
+        }
+
+        .sidebar .logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid var(--primary-color);
+            margin: 0 auto 1rem;
+            display: block;
+        }
+
+        .sidebar h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar ul {
+            list-style: none;
+        }
+
+        .sidebar ul li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar ul li a {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: var(--text-color);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .sidebar ul li a:hover,
+        .sidebar ul li a.active {
+            background: var(--primary-color);
+            color: #ffffff;
+        }
+
+        .sidebar ul li a i {
+            margin-right: 0.75rem;
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        .sidebar.collapsed ul li a i {
+            margin-right: 0;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+            z-index: 999;
+        }
+
+        .overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .main-content {
+            margin-left: 0;
+            padding: 1.5rem;
+            transition: margin-left 0.3s ease;
+        }
+
+        @media (min-width: 992px) {
+            .sidebar {
+                left: 0;
+            }
+
+            .main-content {
+                margin-left: 280px;
+            }
+
+            .sidebar.collapsed~.main-content {
+                margin-left: 80px;
+            }
+
+            .overlay {
+                display: none;
+            }
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--glass-bg);
+            backdrop-filter: blur(8px);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--glass-border);
+        }
+
+        .topbar-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .menu-toggle,
+        .collapse-toggle {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--text-color);
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+
+        .menu-toggle:hover,
+        .collapse-toggle:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+        }
+
+        .theme-toggle input {
+            display: none;
+        }
+
+        .theme-toggle label {
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: var(--text-color);
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+
+        .theme-toggle label:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        @media (min-width: 992px) {
+            .menu-toggle {
+                display: none;
+            }
+        }
+
+        .dashboard-header {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1.25rem;
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(8px);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            margin-bottom: 1.5rem;
+        }
+
+        .card h3 {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            box-shadow: 0 0 0 2px var(--primary-color);
+            outline: none;
+        }
+
+        .form-group .error {
+            color: var(--danger-color);
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .btn-submit {
+            background: var(--primary-color);
+            color: #ffffff;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            position: relative;
+        }
+
+        .btn-submit:hover {
+            background: var(--accent-teal);
+        }
+
+        .btn-submit:disabled {
+            background: rgba(255, 255, 255, 0.3);
+            cursor: not-allowed;
+        }
+
+        .btn-submit.loading::after {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th,
+        td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        th {
+            background: var(--glass-bg);
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        tr:hover {
+            background: rgba(255, 254, 254, 0.05);
+        }
+
+        .btn-action {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            margin-right: 0.5rem;
+        }
+
+        .btn-approve {
+            background: var(--success-color);
+            color: #ffffff;
+        }
+
+        .btn-approve:hover {
+            background: var(--accent-teal);
+        }
+
+        .btn-reject {
+            background: var(--danger-color);
+            color: #ffffff;
+        }
+
+        .btn-reject:hover {
+            background: #dc2626;
+        }
+
+        .btn-export {
+            background: var(--accent-purple);
+            color: #ffffff;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        .btn-export:hover {
+            background: #7c3aed;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--glass-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            text-align: center;
+        }
+
+        .stat-card h4 {
+            font-size: 1rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card p {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header {
+                font-size: 1.25rem;
+            }
+
+            .card {
+                padding: 1rem;
+            }
+
+            .topbar {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .topbar-controls {
+                order: -1;
+            }
+
+            .dashboard-header {
+                order: 0;
+                flex: 1;
+            }
+
+            .theme-toggle {
+                order: 1;
+            }
+
+            table {
+                font-size: 0.8rem;
+            }
+
+            th,
+            td {
+                padding: 0.5rem;
+                white-space: normal;
+            }
+
+            .btn-action {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.75rem;
+            }
+
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Table Container for Responsive Scrolling */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-bottom: 1rem;
+        }
+
+        /* Modern Table Styling */
+        .modern-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            font-size: 0.9rem;
+        }
+
+        [data-theme="dark"] .modern-table {
+            background: #2d3748;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .modern-table thead {
+            background: #90dbaf86;
+            color: #fff;
+        }
+
+        [data-theme="dark"] .modern-table thead {
+            background: #90dbaf86;
+        }
+
+        [data-theme="dark"] .transkasi {
+            color: #fff;
+        }
+
+        .modern-table th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .modern-table tbody tr {
+            transition: background 0.2s ease;
+        }
+
+        .modern-table tbody tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        [data-theme="dark"] .modern-table tbody tr:nth-child(even) {
+            background: #4a5568;
+        }
+
+        .modern-table tbody tr:hover {
+            background: #e6f3ea;
+        }
+
+        [data-theme="dark"] .modern-table tbody tr:hover {
+            background: #5a6b83;
+        }
+
+        .modern-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        [data-theme="dark"] .modern-table td {
+            border-bottom: 1px solid #4a5568;
+        }
+
+        .modern-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Modern Pagination Styling */
+        .modern-pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .modern-pagination button,
+        .modern-pagination span {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f1f5f9;
+            color: #1a202c;
+        }
+
+        [data-theme="dark"] .modern-pagination button,
+        [data-theme="dark"] .modern-pagination span {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+
+        .modern-pagination button:hover:not(:disabled) {
+            background: #2ecc71;
+            color: #fff;
+        }
+
+        [data-theme="dark"] .modern-pagination button:hover:not(:disabled) {
+            background: #27a65d;
+        }
+
+        .modern-pagination span {
+            background: #2ecc71;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        [data-theme="dark"] .modern-pagination span {
+            background: #27a65d;
+        }
+
+        .modern-pagination button:disabled {
+            background: #e2e8f0;
+            color: #a0aec0;
+            cursor: not-allowed;
+        }
+
+        [data-theme="dark"] .modern-pagination button:disabled {
+            background: #2d3748;
+            color: #718096;
+        }
+
+        /* Export Button */
+        .btn-export {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #2ecc71;
+            color: #fff;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+
+        .btn-export:hover {
+            background: #27a65d;
+        }
+
+        [data-theme="dark"] .btn-export {
+            background: #27a65d;
+        }
+
+        [data-theme="dark"] .btn-export:hover {
+            background: #219653;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .modern-table {
+                font-size: 0.85rem;
+            }
+
+            .modern-table th,
+            .modern-table td {
+                padding: 0.75rem;
+            }
+
+            .modern-pagination button,
+            .modern-pagination span {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.85rem;
+            }
+
+            .btn-export {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar" id="sidebar">
+        <img class="logo" src="/static/images/LAMBANG-KOPERASI.png" alt="Logo Koperasi Artha Sejati" role="img">
+        <h2>Koperasi Artha Sejati</h2>
+        <ul>
+            <li><a href="/bendahara" class="active" aria-current="page" title="Dashboard"><i
+                        class="bi bi-grid-fill"></i><span class="nav-text">Dashboard</span></a></li>
+            <li><a href="/permintaan_penarikan" title="Permintaan Penarikan"><i class="bi bi-wallet2"></i><span
+                        class="nav-text">Permintaan Penarikan</span></a></li>
+            <li><a href="/logout" id="logoutButton" title="Logout"><i class="bi bi-box-arrow-right"></i><span
+                        class="nav-text">Logout</span></a></li>
+        </ul>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <div class="main-content">
+        <header class="topbar">
+            <div class="topbar-controls">
+                <button class="menu-toggle" aria-label="Toggle navigasi" onclick="toggleSidebar()"><i
+                        class="bi bi-list"></i></button>
+            </div>
+            <h1 class="dashboard-header">Dashboard Bendahara</h1>
+            <div class="theme-toggle">
+                <input type="checkbox" id="themeSwitch" onchange="toggleTheme()" aria-label="Toggle tema gelap/terang">
+                <label for="themeSwitch"><i class="bi bi-moon-stars-fill"></i></label>
+            </div>
+        </header>
+
+        <!-- Statistics -->
+        <section class="stats-container" aria-label="Statistik keuangan">
+            <div class="stat-card">
+                <h4>Total Simpanan Wajib</h4>
+                <p>{{ total_mandatory_savings }}</p>
+            </div>
+            <div class="stat-card">
+                <h4>Total Simpanan Sukarela</h4>
+                <p>{{ total_voluntary_savings }}</p>
+            </div>
+            <div class="stat-card">
+                <h4>Total Pinjaman Aktif</h4>
+                <p>{{ total_loans }}</p>
+            </div>
+        </section>
+
+        <!-- Recent Transactions -->
+        <section class="card" aria-label="Transaksi terbaru">
+            <h3>Transaksi Terbaru</h3>
+            <div class="table-container">
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Nama Anggota</th>
+                            <th>Jenis Transaksi</th>
+                            <th>Jumlah</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="transkasi">
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>{{ transaction.date }}</td>
+                            <td>{{ transaction.member }}</td>
+                            <td>{{ transaction.type }}</td>
+                            <td>{{ transaction.amount }}</td>
+                            <td>{{ transaction.status }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5">Tidak ada transaksi terbaru.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Transaction Form -->
+        <section class="card" aria-label="Formulir pencatatan transaksi">
+            <h3>Catat Transaksi</h3>
+            <form id="transactionForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="username">Username Anggota</label>
+                    <input type="text" id="username" name="username" required placeholder="Masukkan username anggota"
+                        aria-describedby="usernameError">
+                    <div class="error" id="usernameError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="transaction_type">Jenis Transaksi</label>
+                    <select id="transaction_type" name="transaction_type" required
+                        aria-describedby="transactionTypeError">
+                        <option value="" disabled selected>Pilih jenis transaksi</option>
+                        <option value="wajib">Simpanan Wajib</option>
+                        <option value="sukarela">Simpanan Sukarela</option>
+                        <option value="payment_loan">Pembayaran Pinjaman</option>
+                    </select>
+                    <div class="error" id="transactionTypeError"></div>
+                </div>
+                <div class="form-group" id="loanIdGroup" style="display: none;">
+                    <label for="loan_id">ID Pinjaman</label>
+                    <select id="loan_id" name="loanId" aria-describedby="loanIdError">
+                        <option value="" disabled selected>Pilih ID Pinjaman</option>
+                    </select>
+                    <div class="error" id="loanIdError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="amount">Jumlah (Rp)</label>
+                    <input type="number" id="amount" name="amount" required placeholder="Masukkan jumlah" min="1000"
+                        step="1000" aria-describedby="amountError">
+                    <div class="error" id="amountError"></div>
+                </div>
+                <div class="form-group" id="proofGroup" style="display: none;">
+                    <label for="paymentProof">Bukti Pembayaran</label>
+                    <input type="file" id="paymentProof" name="paymentProof"
+                        accept="image/jpeg,image/png,application/pdf" aria-describedby="proofError">
+                    <div class="error" id="proofError"></div>
+                </div>
+                <button type="submit" class="btn-submit" id="submitTransaction">Catat</button>
+            </form>
+        </section>
+
+
+        <!-- Savings Report Section -->
+        <section class="report-section">
+            <h2>Laporan Simpanan</h2>
+            <div class="table-container">
+                <table id="savingsTable" class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>ID Anggota</th>
+                            <th>Nama</th>
+                            <th>Jenis Simpanan</th>
+                            <th>Jumlah</th>
+                            <th>Tanggal</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="savingsPagination" class="modern-pagination"></div>
+            <a href="#" class="btn-export" id="exportSavings">Ekspor ke Excel</a>
+        </section>
+
+        <!-- Loan Report Section -->
+        <section class="report-section">
+            <h2>Laporan Pembayaran Pinjaman</h2>
+            <div class="table-container">
+                <table id="loansTable" class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>ID Anggota</th>
+                            <th>Nama</th>
+                            <th>Jumlah</th>
+                            <th>Status</th>
+                            <th>Tanggal</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="loansPagination" class="modern-pagination"></div>
+            <a href="#" class="btn-export" id="exportLoans">Ekspor ke Excel</a>
+        </section>
+
+        <section class="report-section">
+            <h2>Laporan Penarikan</h2>
+            <div class="table-container">
+                <table id="withdrawalTable" class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>ID Anggota</th>
+                            <th>Nama</th>
+                            <th>Jumlah Penarikan</th>
+                            <th>Tanggal</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="withdrawalPagination" class="modern-pagination"></div>
+            <a href="#" class="btn-export" id="exportWithdrawals">Ekspor ke Excel</a>
+        </section>
+    </div>
+    <script>
+        // Toggle sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('show');
+        }
+
+        // Toggle sidebar collapse
+        function toggleCollapse() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            const body = document.body;
+            const themeSwitch = document.getElementById('themeSwitch');
+            if (themeSwitch.checked) {
+                body.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Load saved theme and initialize
+        document.addEventListener('DOMContentLoaded', function () {
+            const savedTheme = localStorage.getItem('theme');
+            const themeSwitch = document.getElementById('themeSwitch');
+            if (savedTheme === 'dark') {
+                document.body.setAttribute('data-theme', 'dark');
+                themeSwitch.checked = true;
+            }
+            document.getElementById('logoutButton').addEventListener('click', logout);
+            setupTransactionForm();
+            loadWithdrawals();
+            loadSavings(1);
+            loadLoans(1);
+        });
+
+        // Logout
+        function logout(event) {
+            event.preventDefault();
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: "Anda akan keluar dari dashboard!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#2ecc71',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Ya, keluar!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    try {
+                        Cookies.remove('mytoken', { path: '/' });
+                        document.cookie = "mytoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                        Swal.fire('Berhasil!', 'Anda telah keluar.', 'success').then(() => {
+                            window.location.href = '/logout';
+                        });
+                    } catch (error) {
+                        console.error("Error during logout:", error);
+                        window.location.href = '/logout';
+                    }
+                }
+            });
+        }
+
+        // Setup Transaction Form
+        function setupTransactionForm() {
+            const transactionForm = $('#transactionForm');
+            const submitTransaction = $('#submitTransaction');
+            const transactionType = $('#transaction_type');
+            const loanIdGroup = $('#loanIdGroup');
+            const proofGroup = $('#proofGroup');
+            const usernameInput = $('#username');
+            const loanIdSelect = $('#loan_id');
+            let selectedUserId = null;
+
+            // Show/hide loan ID and proof fields based on transaction type
+            transactionType.on('change', function () {
+                const value = $(this).val();
+                loanIdGroup.hide();
+                proofGroup.hide();
+                loanIdSelect.prop('required', false).empty().append('<option value="" disabled selected>Pilih ID Pinjaman</option>');
+                $('#paymentProof').prop('required', false);
+                if (value === 'payment_loan' && selectedUserId) {
+                    loanIdGroup.show();
+                    proofGroup.show();
+                    loanIdSelect.prop('required', true);
+                    $('#paymentProof').prop('required', true);
+                    loadLoanIds(selectedUserId);
+                }
+            });
+
+            // Validate username and load loan IDs on input
+            usernameInput.on('input', debounce(function () {
+                const username = $(this).val().trim();
+                $('#usernameError').hide();
+                selectedUserId = null;
+                loanIdSelect.empty().append('<option value="" disabled selected>Pilih ID Pinjaman</option>');
+                if (username.length < 3) {
+                    $('#usernameError').text('Username harus minimal 3 karakter.').show();
+                    return;
+                }
+                $.ajax({
+                    url: '/validate_username',
+                    method: 'POST',
+                    data: { username: username },
+                    success: function (response) {
+                        if (response.result === 'success') {
+                            selectedUserId = response.user_id;
+                            if (transactionType.val() === 'payment_loan') {
+                                loadLoanIds(selectedUserId);
+                            }
+                        } else {
+                            $('#usernameError').text(response.msg || 'Username tidak ditemukan.').show();
+                        }
+                    },
+                    error: function () {
+                        $('#usernameError').text('Gagal memvalidasi username.').show();
+                    }
+                });
+            }, 500));
+
+            // Debounce function to limit API calls
+            function debounce(func, wait) {
+                let timeout;
+                return function (...args) {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, args), wait);
+                };
+            }
+
+            // Load loan IDs for the selected user
+            function loadLoanIds(userId) {
+                $.ajax({
+                    url: '/get_loans',
+                    method: 'GET',
+                    data: { user_id: userId },
+                    success: function (response) {
+                        loanIdSelect.empty().append('<option value="" disabled selected>Pilih ID Pinjaman</option>');
+                        if (response.result === 'success' && response.loans.length > 0) {
+                            response.loans.forEach(loan => {
+                                loanIdSelect.append(
+                                    `<option value="${loan.loan_id}">${loan.loan_id} - ${loan.purpose} (Rp ${formatNumber(loan.remaining_balance)})</option>`
+                                );
+                            });
+                        } else {
+                            $('#loanIdError').text('Tidak ada pinjaman aktif untuk anggota ini.').show();
+                        }
+                    },
+                    error: function () {
+                        $('#loanIdError').text('Gagal memuat daftar pinjaman.').show();
+                    }
+                });
+            }
+
+            // Validate transaction form
+            function validateTransactionForm() {
+                let isValid = true;
+                const errors = [];
+                $('.error').hide();
+
+                const username = $('#username').val().trim();
+                if (!username || username.length < 3) {
+                    $('#usernameError').text('Username harus minimal 3 karakter.').show();
+                    errors.push('Username tidak valid.');
+                    isValid = false;
+                } else if (!selectedUserId) {
+                    $('#usernameError').text('Username tidak ditemukan atau bukan anggota.').show();
+                    errors.push('Username tidak valid.');
+                    isValid = false;
+                }
+
+                const transactionTypeVal = transactionType.val();
+                if (!transactionTypeVal) {
+                    $('#transactionTypeError').text('Jenis transaksi diperlukan.').show();
+                    errors.push('Jenis transaksi diperlukan.');
+                    isValid = false;
+                }
+
+                if (transactionTypeVal === 'payment_loan') {
+                    const loanId = loanIdSelect.val();
+                    if (!loanId) {
+                        $('#loanIdError').text('ID Pinjaman diperlukan.').show();
+                        errors.push('ID Pinjaman diperlukan.');
+                        isValid = false;
+                    }
+
+                    const paymentProof = $('#paymentProof')[0].files[0];
+                    if (!paymentProof) {
+                        $('#proofError').text('Bukti pembayaran diperlukan.').show();
+                        errors.push('Bukti pembayaran diperlukan.');
+                        isValid = false;
+                    } else if (!['image/jpeg', 'image/png', 'application/pdf'].includes(paymentProof.type)) {
+                        $('#proofError').text('File harus berupa JPG, PNG, atau PDF.').show();
+                        errors.push('Format file tidak valid.');
+                        isValid = false;
+                    } else if (paymentProof.size > 5 * 1024 * 1024) {
+                        $('#proofError').text('Ukuran file maksimal 5MB.').show();
+                        errors.push('Ukuran file terlalu besar.');
+                        isValid = false;
+                    }
+                }
+
+                const amount = parseFloat($('#amount').val());
+                if (!amount || amount < 1000) {
+                    $('#amountError').text('Jumlah minimal Rp 1.000.').show();
+                    errors.push('Jumlah minimal Rp 1.000.');
+                    isValid = false;
+                }
+
+                if (!isValid) {
+                    Swal.fire({
+                        title: 'Error!',
+                        html: 'Silakan perbaiki kesalahan berikut:<br><ul style="text-align: left;">' + errors.map(e => `<li>${e}</li>`).join('') + '</ul>',
+                        icon: 'error',
+                        confirmButtonColor: '#2ecc71'
+                    });
+                }
+
+                return isValid;
+            }
+
+            // Form submission
+            transactionForm.on('submit', function (e) {
+                e.preventDefault();
+                if (!validateTransactionForm()) return;
+
+                submitTransaction.prop('disabled', true).addClass('loading').text('Memproses...');
+                const formData = new FormData(this);
+                console.log('Form data:', Object.fromEntries(formData)); // Debugging
+
+                $.ajax({
+                    url: '/record_transaction',
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        submitTransaction.prop('disabled', false).removeClass('loading').text('Catat');
+                        if (response.result === 'success') {
+                            Swal.fire({
+                                title: 'Sukses!',
+                                text: response.msg || 'Transaksi berhasil dicatat!',
+                                icon: 'success',
+                                confirmButtonColor: '#2ecc71'
+                            }).then(() => {
+                                transactionForm[0].reset();
+                                loanIdGroup.hide();
+                                proofGroup.hide();
+                                loanIdSelect.empty().append('<option value="" disabled selected>Pilih ID Pinjaman</option>');
+                                selectedUserId = null;
+                                loadSavings(1);
+                                loadLoans(1);
+                                loadWithdrawals();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.msg || 'Gagal mencatat transaksi.',
+                                icon: 'error',
+                                confirmButtonColor: '#2ecc71'
+                            });
+                        }
+                    },
+                    error: function (xhr) {
+                        submitTransaction.prop('disabled', false).removeClass('loading').text('Catat');
+                        let errorMsg = 'Terjadi kesalahan saat mencatat transaksi.';
+                        if (xhr.responseJSON && xhr.responseJSON.msg) {
+                            errorMsg = xhr.responseJSON.msg;
+                        }
+                        Swal.fire({
+                            title: 'Error!',
+                            text: errorMsg,
+                            icon: 'error',
+                            confirmButtonColor: '#2ecc71'
+                        });
+                    }
+                });
+            });
+        }
+
+        // Render Pagination Controls
+        function renderPagination(containerId, totalPages, currentPage, loadFunction) {
+            const container = $(`#${containerId}`);
+            container.empty();
+            if (totalPages <= 1) return;
+
+            container.append(
+                `<button ${currentPage === 1 ? 'disabled' : ''} onclick="${loadFunction}(${currentPage - 1})">Sebelumnya</button>`
+            );
+
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            startPage = Math.max(1, endPage - 4);
+
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === currentPage) {
+                    container.append(`<span>${i}</span>`);
+                } else {
+                    container.append(`<button onclick="${loadFunction}(${i})">${i}</button>`);
+                }
+            }
+
+            container.append(
+                `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="${loadFunction}(${currentPage + 1})">Selanjutnya</button>`
+            );
+        }
+
+        // Load Savings Report
+        function loadSavings(page = 1) {
+            $.ajax({
+                url: `/treasurer_report?page=${page}&per_page=8`,
+                method: 'GET',
+                success: function (response) {
+                    const tbody = $('#savingsTable tbody');
+                    tbody.empty();
+                    const deposits = response.deposits || [];
+                    if (deposits.length > 0) {
+                        deposits.forEach(save => {
+                            tbody.append(`
+                            <tr>
+                                <td>${save.user_id}</td>
+                                <td>${save.profile_name || 'Unknown'}</td>
+                                <td>${save.deposit_type === 'wajib' ? 'Wajib' : 'Sukarela'}</td>
+                                <td>Rp ${formatNumber(save.deposit_amount)}</td>
+                                <td>${formatDate(save.deposit_date)}</td>
+                            </tr>
+                        `);
+                        });
+                    } else {
+                        tbody.append('<tr><td colspan="5">Tidak ada data simpanan.</td></tr>');
+                    }
+                    renderPagination('savingsPagination', response.pagination?.deposits?.pages || 1, page, 'loadSavings');
+                },
+                error: function (xhr) {
+                    let errorMsg = 'Gagal memuat laporan simpanan.';
+                    if (xhr.responseJSON && xhr.responseJSON.msg) {
+                        errorMsg = xhr.responseJSON.msg;
+                    }
+                    Swal.fire({
+                        title: 'Error!',
+                        text: errorMsg,
+                        icon: 'error',
+                        confirmButtonColor: '#2ecc71'
+                    });
+                }
+            });
+        }
+
+        // Load Loans Report
+        function loadLoans(page = 1) {
+            $.ajax({
+                url: `/treasurer_report?page=${page}&per_page=8`,
+                method: 'GET',
+                success: function (response) {
+                    const tbody = $('#loansTable tbody');
+                    tbody.empty();
+                    const payments = response.payments || [];
+                    if (payments.length > 0) {
+                        payments.forEach(payment => {
+                            tbody.append(`
+                            <tr>
+                                <td>${payment.user_id}</td>
+                                <td>${payment.profile_name || 'Unknown'}</td>
+                                <td>Rp ${formatNumber(payment.amount)}</td>
+                                <td>${payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}</td>
+                                <td>${formatDate(payment.payment_date)}</td>
+                            </tr>
+                        `);
+                        });
+                    } else {
+                        tbody.append('<tr><td colspan="5">Tidak ada data pembayaran pinjaman.</td></tr>');
+                    }
+                    renderPagination('loansPagination', response.pagination?.payments?.pages || 1, page, 'loadLoans');
+                },
+                error: function (xhr) {
+                    let errorMsg = 'Gagal memuat laporan pinjaman.';
+                    if (xhr.responseJSON && xhr.responseJSON.msg) {
+                        errorMsg = xhr.responseJSON.msg;
+                    }
+                    Swal.fire({
+                        title: 'Error!',
+                        text: errorMsg,
+                        icon: 'error',
+                        confirmButtonColor: '#2ecc71'
+                    });
+                }
+            });
+        }
+
+        // Load Withdrawals (Placeholder - adjust as needed)
+        function loadWithdrawals() {
+            // Implement withdrawal report loading if needed
+            const tbody = $('#withdrawalsTable tbody');
+            tbody.empty().append('<tr><td colspan="5">Fitur penarikan belum diimplementasikan.</td></tr>');
+        }
+
+        // Format Number for Display
+        function formatNumber(num) {
+            return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        // Format Date for Display
+        function formatDate(dateStr) {
+            try {
+                const [datePart] = dateStr.split(' ');
+                const [year, month, day] = datePart.split('-');
+                return `${day}/${month}/${year}`;
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
+        // Export Savings
+        $('#exportSavings').on('click', function (e) {
+            e.preventDefault();
+            $.ajax({
+                url: '/treasurer_report?page=1&per_page=8',
+                method: 'GET',
+                success: function (response) {
+                    const deposits = response.deposits || [];
+                    if (deposits.length > 0) {
+                        window.location.href = '/export_savings_xlsx';
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Tidak ada data simpanan untuk diekspor.',
+                            icon: 'error',
+                            confirmButtonColor: '#2ecc71'
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    let errorMsg = 'Gagal mengambil data simpanan.';
+                    if (xhr.responseJSON && xhr.responseJSON.msg) {
+                        errorMsg = xhr.responseJSON.msg;
+                    }
+                    Swal.fire({
+                        title: 'Error!',
+                        text: errorMsg,
+                        icon: 'error',
+                        confirmButtonColor: '#2ecc71'
+                    });
+                }
+            });
+        });
+
+        // Export Loans
+        $('#exportLoans').on('click', function (e) {
+            e.preventDefault();
+            $.ajax({
+                url: '/treasurer_report?page=1&per_page=8',
+                method: 'GET',
+                success: function (response) {
+                    const payments = response.payments || [];
+                    if (payments.length > 0) {
+                        window.location.href = '/export_loans_xlsx';
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Tidak ada data pembayaran pinjaman untuk diekspor.',
+                            icon: 'error',
+                            confirmButtonColor: '#2ecc71'
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    let errorMsg = 'Gagal mengambil data pembayaran pinjaman.';
+                    if (xhr.responseJSON && xhr.responseJSON.msg) {
+                        errorMsg = xhr.responseJSON.msg;
+                    }
+                    Swal.fire({
+                        title: 'Error!',
+                        text: errorMsg,
+                        icon: 'error',
+                        confirmButtonColor: '#2ecc71'
+                    });
+                }
+            });
+        });
+
+        // Load Withdrawal Requests
+        function loadWithdrawals() {
+            $.ajax({
+                url: '/withdrawal_requests',
+                method: 'GET',
+                success: function (withdrawals) {
+                    const tbody = $('#withdrawalTable tbody');
+                    tbody.empty();
+                    if (withdrawals && withdrawals.length > 0) {
+                        withdrawals.forEach(req => {
+                            const actions = req.status === 'Pending' ? `
+                        <button class="btn-action btn-approve" onclick="approveWithdrawal('${req.withdrawal_id}')" aria-label="Setujui penarikan">Setujui</button>
+                        <button class="btn-action btn-reject" onclick="rejectWithdrawal('${req.withdrawal_id}')" aria-label="Tolak penarikan">Tolak</button>
+                    ` : req.status;
+                            tbody.append(`
+                        <tr>
+                            <td>${req.user_id}</td>
+                            <td>${req.member_name}</td>
+                            <td>Rp ${formatNumber(req.withdraw_amount)}</td>
+                            <td>${formatDate(req.withdrawal_date)}</td>
+                            <td>${req.status}</td>
+                        </tr>
+                    `);
+                        });
+                    } else {
+                        tbody.append('<tr><td colspan="6">Tidak ada permintaan penarikan.</td></tr>');
+                    }
+                },
+                error: function (xhr) {
+                    let errorMsg = 'Gagal memuat permintaan penarikan.';
+                    if (xhr.responseJSON && xhr.responseJSON.msg) {
+                        errorMsg = xhr.responseJSON.msg;
+                    }
+                    Swal.fire({
+                        title: 'Error!',
+                        text: errorMsg,
+                        icon: 'error',
+                        confirmButtonColor: '#2ecc71'
+                    });
+                }
+            });
+        }
+
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
+        integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"
+        integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</body>
+
+</html>

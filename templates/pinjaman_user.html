@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peminjaman - Koperasi Artha Sejati</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/logo.png') }}" type="image/x-icon">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe, #a5f3fc);
+            color: #1e293b;
+            overflow-x: hidden;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #15803d, #34d399);
+            color: white;
+            position: fixed;
+            width: 280px;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            padding: 20px 10px;
+            border-right: 3px solid #16a34a;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            background: linear-gradient(180deg, rgba(21, 128, 61, 0.95), rgba(52, 211, 153, 0.95));
+        }
+
+        .sidebar .logo {
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        .sidebar a {
+            color: #f3f4f6;
+            text-decoration: none;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            margin: 5px 10px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar a::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.5s ease;
+        }
+
+        .sidebar a:hover::before {
+            left: 100%;
+        }
+
+        .sidebar a:hover {
+            background: rgba(22, 163, 74, 0.8);
+            color: white;
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .sidebar .active {
+            background: rgba(22, 163, 74, 0.8);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .sidebar .nav-icon {
+            font-size: 1.4rem;
+            margin-right: 12px;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar a:hover .nav-icon {
+            transform: scale(1.2) rotate(5deg);
+        }
+
+        .sidebar .dropdown-menu {
+            background: rgba(30, 41, 59, 0.95);
+            border: none;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+
+        .sidebar .dropdown-menu a {
+            color: #f3f4f6;
+            padding: 8px 25px;
+            font-size: 0.9rem;
+        }
+
+        .sidebar .dropdown-menu a:hover {
+            background: #16a34a;
+            border-radius: 10px;
+            margin-left: -5px;
+            /* Ukuran hover */
+        }
+
+        .content {
+            margin-left: 280px;
+            padding: 40px;
+            transition: margin-left 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            padding: 0;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .navbar .navbar-brand {
+            display: none;
+        }
+
+        .welcome-banner {
+            background: linear-gradient(90deg, #16a34a, #34d399);
+            border-radius: 15px 15px 0 0;
+            padding: 25px 40px;
+            color: white;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            animation: slideIn 1s ease-out;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .welcome-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 1.5s ease;
+        }
+
+        .welcome-banner:hover::before {
+            left: 100%;
+        }
+
+        .welcome-banner h3 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 0;
+            animation: fadeInText 1.2s ease-out;
+        }
+
+        .welcome-banner p {
+            font-size: 1rem;
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .welcome-banner .user-icon {
+            font-size: 3rem;
+            opacity: 0.8;
+            margin-right: 30px;
+        }
+
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+            position: relative;
+            animation: slideUp 0.8s ease-out;
+        }
+
+        .card:hover {
+            transform: translateY(-10px) rotateX(2deg);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(90deg, #16a34a, #34d399);
+            transition: all 0.3s ease;
+        }
+
+        .card-header {
+            background: linear-gradient(90deg, #16a34a, #34d399);
+            color: white;
+            border-radius: 20px 20px 0 0;
+            padding: 15px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+            transition: all 0.5s ease;
+        }
+
+        .card:hover .card-header::after {
+            right: 50%;
+        }
+
+        .card-body {
+            padding: 25px;
+            background: transparent;
+            border-radius: 0 0 20px 20px;
+        }
+
+        .form-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .form-control,
+        .form-select {
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            padding: 10px;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: #16a34a;
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+            background: white;
+        }
+
+        .btn-gradient {
+            background: linear-gradient(90deg, #16a34a, #34d399);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-gradient:hover {
+            background: linear-gradient(90deg, #15803d, #16a34a);
+            transform: scale(1.08);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .input-group-text {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid #d1d5db;
+            border-radius: 8px 0 0 8px;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .preview-amount,
+        .preview-installment {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #16a34a;
+            margin-top: 10px;
+        }
+
+        .invalid-feedback {
+            font-size: 0.8rem;
+            color: #ef4444;
+        }
+
+        .alert-installment {
+            background: rgba(22, 163, 74, 0.1);
+            border: 1px solid #16a34a;
+            color: #15803d;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            backdrop-filter: blur(5px);
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .alert-installment .amount {
+            font-weight: 600;
+            color: #16a34a;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 999;
+            display: none;
+            transition: opacity 0.4s ease;
+        }
+
+        .overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInText {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 260px;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .content {
+                margin-left: 0;
+                padding: 20px;
+            }
+
+            .navbar .navbar-brand {
+                display: flex;
+                align-items: center;
+            }
+
+            .card {
+                animation: none;
+            }
+
+            .welcome-banner {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                padding: 20px 30px;
+                margin-bottom: 0;
+            }
+
+            .welcome-banner h3 {
+                font-size: 1.5rem;
+            }
+
+            .welcome-banner p {
+                font-size: 0.9rem;
+            }
+
+            .welcome-banner .user-icon {
+                font-size: 2.5rem;
+                margin-right: 20px;
+            }
+
+            .form-label,
+            .form-control,
+            .form-select {
+                font-size: 0.85rem;
+            }
+
+            .btn-gradient {
+                width: 100%;
+                padding: 12px;
+            }
+
+            .alert-installment {
+                font-size: 0.85rem;
+                padding: 10px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .navbar .navbar-brand {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Overlay for mobile sidebar -->
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="logo">
+            <img src="/static/images/LAMBANG-KOPERASI.png" alt="Logo" class="img-fluid mb-2 rounded-circle" width="80">
+            <h4 class="text-white fw-semibold"><i class="me-2"></i> Koperasi Artha Sejati</h4>
+        </div>
+        <a href="/home"><i class="fas fa-home nav-icon"></i> Dashboard</a>
+        <a href="/saldo"><i class="fas fa-wallet nav-icon"></i> Saldo</a>
+        <div class="dropdown">
+            <a href="#" class="dropdown-toggle active" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-history nav-icon"></i> Transaksi
+            </a>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="/pinjaman">Pinjaman</a></li>
+                <li><a class="dropdown-item" href="/simpanan">Simpanan</a></li>
+                <li><a class="dropdown-item" href="/pembayaran">Pembayaran</a></li>
+                <li><a class="dropdown-item" href="/withdrawal_request">Permintaan Penarikan</a></li>
+                <li><a class="dropdown-item" href="/riwayat_simpanan">Riwayat Simpanan</a></li>
+                <li><a class="dropdown-item" href="/riwayat_pinjaman">Riwayat Pinjaman</a></li>
+            </ul>
+        </div>
+        <a href="/profile"><i class="fas fa-user nav-icon"></i> Profil</a>
+        <a href="javascript:void(0);" onclick="logout()"><i class="fas fa-sign-out-alt nav-icon"></i> Logout</a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content">
+        <!-- Navbar -->
+        <nav class="navbar navbar-expand-lg">
+            <div class="container-fluid mb-2 mt-2">
+                <a class="navbar-brand" href="javascript:void(0)" onclick="toggleSidebar()">
+                    <i class="fas fa-bars text-success me-2"></i>
+                </a>
+                <div class="w-100">
+                    <div class="welcome-banner">
+                        <img src="/static/{{user_info.profile_pic_real}}" alt="avatar"
+                            class="rounded-circle img-fluid user-icon" style="width: 150px; height: 150px;">
+                        <div>
+                            <h3>Selamat Datang, {{ user_info.profile_name if user_info else 'Pengguna' }}!</h3>
+                            <p>Atur keuangan Anda dengan mudah di Koperasi Simpan Pinjam</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        <!-- Peminjaman Form -->
+        <div class="container-fluid">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-hand-holding-usd me-2"></i> Ajukan Peminjaman</h5>
+                </div>
+                <div class="card-body">
+                    <form id="peminjamanForm">
+                        <div class="mb-4">
+                            <label for="loanAmount" class="form-label">Jumlah Pinjaman (Rp)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="number" class="form-control" id="loanAmount" min="500000" required
+                                    placeholder="Masukkan jumlah">
+                            </div>
+                            <div class="invalid-feedback">
+                                Masukkan jumlah minimal Rp 500.000.
+                            </div>
+                            <div class="preview-amount" id="amountPreview"></div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="loanPurpose" class="form-label">Tujuan Pinjaman</label>
+                            <select class="form-select" id="loanPurpose" required>
+                                <option value="" disabled selected>Pilih tujuan pinjaman</option>
+                                <option value="usaha">Modal Usaha</option>
+                                <option value="pendidikan">Pendidikan</option>
+                                <option value="konsumtif">Konsumtif</option>
+                                <option value="lainnya">Lainnya</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Silakan pilih tujuan pinjaman.
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="loanTerm" class="form-label">Jangka Waktu (Bulan)</label>
+                            <select class="form-select" id="loanTerm" required>
+                                <option value="" disabled selected>Pilih jangka waktu</option>
+                                <option value="6">6 Bulan</option>
+                                <option value="12">12 Bulan</option>
+                                <option value="24">24 Bulan</option>
+                                <option value="36">36 Bulan</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Silakan pilih jangka waktu.
+                            </div>
+                            <div class="preview-installment" id="installmentPreview"></div>
+                        </div>
+                        <button type="submit" class="btn btn-gradient">Ajukan Pinjaman</button>
+                        <div class="alert alert-installment alert-dismissible fade show" id="installmentAlert"
+                            role="alert">
+                            <span>Estimasi angsuran bulanan: <span class="amount" id="alertAmount"></span></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Cookies JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.1/js.cookie.min.js"></script>
+    <!-- Font Awesome -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/js/all.min.js"></script>
+    <!-- Custom JS -->
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+
+        function formatRupiah(amount) {
+            const number = parseFloat(amount);
+            if (isNaN(number)) return 'Rp 0';
+            return `Rp ${number.toLocaleString('id-ID')}`;
+        }
+
+        function formatCurrency(amount) {
+            const number = parseFloat(amount);
+            if (isNaN(number)) return 'Rp 0';
+            if (number >= 1_000_000_000) {
+                return `Rp ${(number / 1_000_000_000).toFixed(0)} M`;
+            } else if (number >= 1_000_000) {
+                return `Rp ${(number / 1_000_000).toFixed(0)} Juta`;
+            } else if (number >= 1_000) {
+                return `Rp ${(number / 1_000).toFixed(0)} Ribu`;
+            } else {
+                return `Rp ${number.toLocaleString('id-ID')}`;
+            }
+        }
+
+        function calculateInstallment(amount, term) {
+            const interestRate = 0.05;
+            const principal = parseFloat(amount);
+            const termMonths = parseInt(term);
+            if (isNaN(principal) || isNaN(termMonths) || termMonths === 0) return 0;
+            const totalInterest = principal * interestRate * (termMonths / 12);
+            const totalAmount = principal + totalInterest;
+            const monthlyInstallment = totalAmount / termMonths;
+            return monthlyInstallment;
+        }
+
+        const loanAmountInput = document.getElementById('loanAmount');
+        const loanPurposeSelect = document.getElementById('loanPurpose');
+        const loanTermSelect = document.getElementById('loanTerm');
+        const amountPreview = document.getElementById('amountPreview');
+        const installmentPreview = document.getElementById('installmentPreview');
+        const installmentAlert = document.getElementById('installmentAlert');
+        const alertAmount = document.getElementById('alertAmount');
+        const peminjamanForm = document.getElementById('peminjamanForm');
+
+        function updatePreviews() {
+            const amount = loanAmountInput.value;
+            const term = loanTermSelect.value;
+
+            if (amount && amount >= 500000) {
+                amountPreview.textContent = formatCurrency(amount);
+                loanAmountInput.classList.remove('is-invalid');
+            } else {
+                amountPreview.textContent = '';
+                if (amount) {
+                    loanAmountInput.classList.add('is-invalid');
+                }
+            }
+
+            if (amount && term && amount >= 500000) {
+                const monthlyInstallment = calculateInstallment(amount, term);
+                installmentPreview.textContent = `Estimasi Angsuran: ${formatRupiah(monthlyInstallment.toFixed(0))} / bulan`;
+                alertAmount.textContent = formatRupiah(monthlyInstallment.toFixed(0));
+                installmentAlert.style.display = 'block';
+            } else {
+                installmentPreview.textContent = '';
+                installmentAlert.style.display = 'none';
+            }
+        }
+
+        loanAmountInput.addEventListener('input', updatePreviews);
+        loanTermSelect.addEventListener('change', updatePreviews);
+
+        peminjamanForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const loanAmount = loanAmountInput.value;
+            const loanPurpose = loanPurposeSelect.value;
+            const loanTerm = loanTermSelect.value;
+
+            if (!loanAmount || loanAmount < 500000) {
+                loanAmountInput.classList.add('is-invalid');
+                return;
+            }
+            if (!loanPurpose) {
+                loanPurposeSelect.classList.add('is-invalid');
+                return;
+            }
+            if (!loanTerm) {
+                loanTermSelect.classList.add('is-invalid');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('loanAmount', loanAmount);
+            formData.append('loanPurpose', loanPurpose);
+            formData.append('loanTerm', loanTerm);
+
+            fetch('/pinjaman', {
+                method: 'POST',
+                body: formData,
+                credentials: 'include'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.result === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Pengajuan Berhasil!',
+                            html: `Pinjaman sebesar ${formatRupiah(data.loan_amount)} untuk ${data.loan_purpose} (${data.loan_term} bulan) telah diajukan.`,
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#16a34a'
+                        }).then(() => {
+                            window.location.href = '/home';
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal!',
+                            text: data.msg || 'Terjadi kesalahan saat mengajukan pinjaman.',
+                            confirmButtonColor: '#16a34a'
+                        });
+                    }
+                })
+                .catch(error => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal!',
+                        text: 'Terjadi kesalahan saat mengajukan pinjaman.',
+                        confirmButtonColor: '#16a34a'
+                    });
+                });
+        });
+
+        peminjamanForm.addEventListener('reset', function () {
+            installmentAlert.style.display = 'none';
+            amountPreview.textContent = '';
+            installmentPreview.textContent = '';
+            loanAmountInput.classList.remove('is-invalid');
+            loanPurposeSelect.classList.remove('is-invalid');
+            loanTermSelect.classList.remove('is-invalid');
+        });
+
+        installmentAlert.addEventListener('closed.bs.alert', function () {
+            installmentAlert.style.display = 'none';
+        });
+
+        // Logout function
+        function logout() {
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: "Anda akan keluar!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#2ecc71',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Ya, keluar!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    try {
+                        Cookies.remove('mytoken');
+                        Cookies.remove('mytoken', { path: '/' });
+                        if ($ && $.removeCookie) {
+                            $.removeCookie('mytoken');
+                            $.removeCookie('mytoken', { path: '/' });
+                        }
+                        document.cookie = "mytoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                        Swal.fire(
+                            'Keluar!',
+                            'Anda telah berhasil keluar.',
+                            'success'
+                        ).then(() => {
+                            window.location.href = '/login';
+                        });
+                    } catch (error) {
+                        console.error("Error during logout:", error);
+                        window.location.href = '/login';
+                    }
+                }
+            });
+        }
+
+    </script>
+</body>
+
+</html>

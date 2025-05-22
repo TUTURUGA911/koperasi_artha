@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permintaan Penarikan Simpanan - Koperasi Artha Sejati</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SweetAlert2 for Alerts -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/logo.png') }}" type="image/x-icon">
+    <style>
+        /* Your existing CSS remains unchanged */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe, #a5f3fc);
+            color: #1e293b;
+            overflow-x: hidden;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #15803d, #34d399);
+            color: white;
+            position: fixed;
+            width: 280px;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            padding: 20px 10px;
+            border-right: 3px solid #16a34a;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            background: linear-gradient(180deg, rgba(21, 128, 61, 0.95), rgba(52, 211, 153, 0.95));
+        }
+
+        .sidebar .logo {
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        .sidebar a {
+            color: #f3f4f6;
+            text-decoration: none;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            margin: 5px 10px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar a::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.5s ease;
+        }
+
+        .sidebar a:hover::before {
+            left: 100%;
+        }
+
+        .sidebar a:hover {
+            background: rgba(22, 163, 74, 0.8);
+            color: white;
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .sidebar .active {
+            background: rgba(22, 163, 74, 0.8);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .sidebar .nav-icon {
+            font-size: 1.4rem;
+            margin-right: 12px;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar a:hover .nav-icon {
+            transform: scale(1.2) rotate(5deg);
+        }
+
+        .sidebar .dropdown-menu {
+            background: rgba(30, 41, 59, 0.95);
+            border: none;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+
+        .sidebar .dropdown-menu a {
+            color: #f3f4f6;
+            padding: 8px 25px;
+            font-size: 0.9rem;
+        }
+
+        .sidebar .dropdown-menu a:hover {
+            background: #16a34a;
+            border-radius: 10px;
+            margin-left: -5px;
+            /* Ukuran hover */
+        }
+
+
+        .content {
+            margin-left: 280px;
+            padding: 40px;
+            transition: margin-left 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            padding: 15px 25px;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .navbar .navbar-brand {
+            display: none;
+        }
+
+        .welcome-banner {
+            background: linear-gradient(90deg, #16a34a, #34d399);
+            border-radius: 15px;
+            padding: 20px 30px;
+            color: white;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            animation: slideIn 1s ease-out;
+        }
+
+        .welcome-banner h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+            animation: fadeInText 1.2s ease-out;
+        }
+
+        .welcome-banner p {
+            font-size: 0.9rem;
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .welcome-banner .user-icon {
+            font-size: 2.5rem;
+            opacity: 0.8;
+            margin-right: 20px;
+        }
+
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+            position: relative;
+            animation: slideUp 0.8s ease-out;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            background: linear-gradient(90deg, #a855f7, #d8b4fe);
+            color: white;
+            border-radius: 20px 20px 0 0;
+            padding: 15px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+
+        .card-body {
+            padding: 25px;
+            background: transparent;
+            border-radius: 0 0 20px 20px;
+        }
+
+        .card h3 {
+            font-size: 1.8rem;
+            margin-bottom: 12px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #a855f7;
+        }
+
+        .card p {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 15px;
+            font-weight: 400;
+        }
+
+        .btn-gradient {
+            background: linear-gradient(90deg, #a855f7, #d8b4fe);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 25px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-gradient:hover {
+            background: linear-gradient(90deg, #9333ea, #a855f7);
+            transform: scale(1.08);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            padding: 10px;
+            font-size: 0.9rem;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: #a855f7;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
+            outline: none;
+        }
+
+        .form-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 999;
+            display: none;
+            transition: opacity 0.4s ease;
+        }
+
+        .overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        #loading-spinner {
+            display: none;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #a855f7;
+        }
+
+        #loading-spinner::before {
+            content: '\f110';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            display: inline-block;
+            margin-right: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInText {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 260px;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+
+            .content {
+                margin-left: 0;
+                padding: 20px;
+            }
+
+            .navbar .navbar-brand {
+                display: flex;
+                align-items: center;
+            }
+
+            .welcome-banner {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                padding: 15px 20px;
+            }
+
+            .welcome-banner h3 {
+                font-size: 1.4rem;
+            }
+
+            .welcome-banner p {
+                font-size: 0.85rem;
+            }
+
+            .card h3 {
+                font-size: 1.6rem;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .navbar .navbar-brand {
+                display: none;
+            }
+
+            .welcome-banner {
+                padding: 25px 40px;
+                justify-content: flex-start;
+            }
+
+            .welcome-banner h3 {
+                font-size: 1.8rem;
+            }
+
+            .welcome-banner p {
+                font-size: 1rem;
+            }
+
+            .welcome-banner .user-icon {
+                font-size: 3rem;
+                margin-right: 30px;
+            }
+        }
+
+        /* New style for terbilang text */
+        #terbilang {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-top: 10px;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Overlay for mobile sidebar -->
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="logo">
+            <img src="/static/images/LAMBANG-KOPERASI.png" alt="Logo Koperasi" class="img-fluid mb-2 rounded-circle"
+                width="80" aria-label="Logo Koperasi Artha Sejati">
+            <h4 class="text-white fw-semibold">Koperasi Artha Sejati</h4>
+        </div>
+        <a href="/home"><i class="fas fa-home nav-icon"></i> Dashboard</a>
+        <a href="/saldo"><i class="fas fa-wallet nav-icon"></i> Saldo</a>
+        <div class="dropdown">
+            <a href="#" class="dropdown-toggle active" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-history nav-icon"></i> Transaksi
+            </a>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="/pinjaman">Pinjaman</a></li>
+                <li><a class="dropdown-item" href="/simpanan">Simpanan</a></li>
+                <li><a class="dropdown-item" href="/pembayaran">Pembayaran</a></li>
+                <li><a class="dropdown-item" href="/withdrawal_request">Permintaan Penarikan</a></li>
+                <li><a class="dropdown-item" href="/riwayat_simpanan">Riwayat Simpanan</a></li>
+                <li><a class="dropdown-item" href="/riwayat_pinjaman">Riwayat Pinjaman</a></li>
+            </ul>
+        </div>
+        <a href="/profile"><i class="fas fa-user nav-icon"></i> Profil</a>
+        <a href="javascript:void(0);" onclick="logout()"><i class="fas fa-sign-out-alt nav-icon"></i> Logout</a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content">
+        <nav class="navbar navbar-expand-lg">
+            <div class="container-fluid mb-2 mt-2">
+                <a class="navbar-brand" href="javascript:void(0)" onclick="toggleSidebar()">
+                    <i class="fas fa-bars text-success me-2"></i>
+                </a>
+                <div class="w-100">
+                    <div class="welcome-banner">
+                        <img src="/static/{{user_info.profile_pic_real}}" alt="avatar"
+                            class="rounded-circle img-fluid user-icon" style="width: 150px; height: 150px;">
+                        <div>
+                            <h3>Selamat Datang, {{ user_info.profile_name if user_info else 'Pengguna' }}!</h3>
+                            <p>Atur keuangan Anda dengan mudah di Koperasi Simpan Pinjam</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Withdrawal Request Content -->
+        <div class="container-fluid">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i> Permintaan Penarikan Simpanan Sukarela
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h3 id="availableBalance">Saldo Tersedia: Rp 0</h3>
+                    <p>Ajukan penarikan simpanan sukarela Anda. Penarikan akan diproses setelah persetujuan pengurus
+                        koperasi.</p>
+                    <form id="withdrawalForm" method="POST" action="/tarik_simpanan">
+                        <input type="hidden">
+                        <div class="mb-3">
+                            <label for="withdrawalAmount" class="form-label">Jumlah Penarikan (Rp)</label>
+                            <input type="number" class="form-control" id="withdrawalAmount" name="withdrawAmount"
+                                min="10000" step="1000" required aria-describedby="withdrawalHelp">
+                            <div id="withdrawalHelp" class="form-text">Minimal Rp 10.000, kelipatan Rp 1.000</div>
+                            <div id="terbilang">Terbilang: -</div>
+                        </div>
+                        <button type="submit" class="btn btn-gradient" id="submitWithdrawal">Ajukan Penarikan</button>
+                    </form>
+                    <div id="loading-spinner">Memuat...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery for AJAX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <!-- SweetAlert2 for alerts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- js-cookie for cookie management -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.1/js.cookie.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+
+        function formatRupiah(amount) {
+            const number = parseFloat(amount);
+            if (isNaN(number)) return 'Rp 0';
+            return `Rp ${number.toLocaleString('id-ID')}`;
+        }
+
+        function numberToTerbilang(number) {
+            const units = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan'];
+            const teens = ['Sepuluh', 'Sebelas', 'Dua Belas', 'Tiga Belas', 'Empat Belas', 'Lima Belas', 'Enam Belas', 'Tujuh Belas', 'Delapan Belas', 'Sembilan Belas'];
+            const tens = ['', '', 'Dua Puluh', 'Tiga Puluh', 'Empat Puluh', 'Lima Puluh', 'Enam Puluh', 'Tujuh Puluh', 'Delapan Puluh', 'Sembilan Puluh'];
+            const thousands = ['', 'Ribu', 'Juta', 'Miliar', 'Triliun'];
+
+            if (number === 0) return 'Nol Rupiah';
+
+            function convertThreeDigits(num) {
+                let result = '';
+                const hundred = Math.floor(num / 100);
+                const remainder = num % 100;
+
+                if (hundred > 0) {
+                    if (hundred === 1) {
+                        result += 'Seratus'; // Use "Seratus" instead of "Satu Ratus"
+                    } else {
+                        result += `${units[hundred]} Ratus`;
+                    }
+                    if (remainder > 0) result += ' ';
+                }
+
+                if (remainder >= 20) {
+                    const ten = Math.floor(remainder / 10);
+                    const unit = remainder % 10;
+                    result += tens[ten];
+                    if (unit > 0) result += ` ${units[unit]}`;
+                } else if (remainder >= 10) {
+                    result += teens[remainder - 10];
+                } else if (remainder > 0) {
+                    result += units[remainder];
+                }
+
+                return result;
+            }
+
+            let result = '';
+            let groupIndex = 0;
+            number = Math.floor(parseFloat(number));
+
+            if (number < 0) return 'Minus ' + numberToTerbilang(Math.abs(number));
+
+            while (number > 0) {
+                const threeDigits = number % 1000;
+                if (threeDigits > 0) {
+                    let part = convertThreeDigits(threeDigits);
+                    if (groupIndex === 1 && threeDigits === 1) {
+                        part = 'Seribu';
+                    } else if (threeDigits > 0) {
+                        part += ` ${thousands[groupIndex]}`;
+                    }
+                    result = part + (result ? ' ' + result : '');
+                }
+                number = Math.floor(number / 1000);
+                groupIndex++;
+            }
+
+            return result.trim() + ' Rupiah';
+        }
+
+        function updateTerbilang() {
+            const amount = parseFloat($('#withdrawalAmount').val());
+            const terbilangDiv = $('#terbilang');
+            if (isNaN(amount) || amount <= 0) {
+                terbilangDiv.text('Terbilang: -');
+            } else {
+                terbilangDiv.text('Terbilang: ' + numberToTerbilang(amount));
+            }
+        }
+
+        function loadBalance() {
+            const loadingSpinner = $('#loading-spinner');
+            loadingSpinner.show();
+
+            $.ajax({
+                type: "GET",
+                url: "/get_simpanan",
+                success: function (response) {
+                    loadingSpinner.hide();
+                    if (response.result === 'success') {
+                        $('#availableBalance').text(`Saldo Tersedia: ${formatRupiah(response.total_sukarela)}`);
+                        $('#withdrawalAmount').attr('max', response.total_sukarela);
+                    } else {
+                        Swal.fire('Error', response.msg, 'error');
+                    }
+                },
+                error: function () {
+                    loadingSpinner.hide();
+                    Swal.fire('Error', 'Gagal memuat saldo simpanan.', 'error');
+                }
+            });
+        }
+
+        function logout() {
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: "Anda akan keluar!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#2ecc71',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Ya, keluar!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Cookies.remove('mytoken', { path: '/' });
+                    Swal.fire(
+                        'Keluar!',
+                        'Anda telah berhasil keluar.',
+                        'success'
+                    ).then(() => {
+                        window.location.href = '/logout';
+                    });
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            loadBalance();
+
+            $('#withdrawalAmount').on('input', updateTerbilang);
+
+            $('#withdrawalForm').on('submit', function (e) {
+                e.preventDefault();
+                const amount = parseFloat($('#withdrawalAmount').val());
+                const maxAmount = parseFloat($('#withdrawalAmount').attr('max'));
+
+                if (isNaN(amount) || amount <= 0) {
+                    Swal.fire('Error', 'Masukkan jumlah penarikan yang valid.', 'error');
+                    return;
+                }
+
+                if (amount < 10000) {
+                    Swal.fire('Error', 'Jumlah penarikan minimal Rp 10.000.', 'error');
+                    return;
+                }
+
+                if (amount % 1000 !== 0) {
+                    Swal.fire('Error', 'Jumlah penarikan harus kelipatan Rp 1.000.', 'error');
+                    return;
+                }
+
+                if (amount > maxAmount) {
+                    Swal.fire('Error', 'Jumlah penarikan melebihi saldo tersedia.', 'error');
+                    return;
+                }
+
+                $('#submitWithdrawal').prop('disabled', true);
+                $('#loading-spinner').show();
+
+                const formData = new FormData(this);
+
+                $.ajax({
+                    type: "POST",
+                    url: "/tarik_simpanan",
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        $('#submitWithdrawal').prop('disabled', false);
+                        $('#loading-spinner').hide();
+                        if (response.result === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text: response.msg,
+                                confirmButtonColor: '#2ecc71'
+                            }).then(() => {
+                                $('#withdrawalForm')[0].reset();
+                                updateTerbilang(); // Reset terbilang text after form reset
+                                loadBalance();
+                            });
+                        } else {
+                            Swal.fire('Error', response.msg, 'error');
+                        }
+                    },
+                    error: function (xhr) {
+                        $('#submitWithdrawal').prop('disabled', false);
+                        $('#loading-spinner').hide();
+                        const msg = xhr.responseJSON && xhr.responseJSON.msg ? xhr.responseJSON.msg : 'Gagal mengajukan penarikan. Silakan coba lagi.';
+                        Swal.fire('Error', msg, 'error');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
