@@ -49,6 +49,8 @@
             --warning-color: #f59e0b;
             /* Yellow for Belum Lunas */
             --success-color: #10b981;
+
+            --pendding-color: #fbbf24;
             /* Green for Lunas */
             --glass-bg: rgba(255, 255, 255, 0.15);
             --glass-border: rgba(255, 255, 255, 0.3);
@@ -371,6 +373,21 @@
             color: #ffffff;
         }
 
+        .badge.pending {
+            background: var(--pendding-color);
+            color: #ffffff;
+        }
+
+        .badge.completed {
+            background: var(--primary-color);
+            color: #ffffff;
+        }
+
+        .badge.rejected {
+            background: var(--danger-color);
+            color: #ffffff;
+        }
+
         /* Action Buttons */
         .action-btn {
             background: none;
@@ -489,6 +506,14 @@
                 order: 1;
             }
         }
+
+        .btn-approve i {
+            color: var(--success-color);
+        }
+
+        .btn-approve:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 
@@ -560,6 +585,8 @@
                         <th scope="col">Date</th>
                         <th scope="col">Status</th>
                         <th scope="col" class="text-center">Actions</th>
+                        <th scope="col" class="text-center">Approve</th>
+                        <th scope="col" class="text-center">Reject</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -592,10 +619,24 @@
                                 <span class="tooltip-text">Delete</span>
                             </button>
                         </td>
+                        <td class="text-center">
+                            <button onclick="approvePayment('{{ payment.payment_id }}')" class="action-btn btn-approve"
+                                title="Approve">
+                                <i class="bi bi-check-circle"></i>
+                                <span class="tooltip-text">Approve</span>
+                            </button>
+                        </td>
+                        <td class="text-center">
+                            <button onclick="rejectPayment('{{ payment.payment_id }}')" class="action-btn btn-reject"
+                                title="Reject">
+                                <i class="bi bi-x-circle"></i>
+                                <span class="tooltip-text">Reject</span>
+                            </button>
+                        </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="7" class="text-center">No payments found</td>
+                        <td colspan="8" class="text-center">No payments found</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -605,13 +646,25 @@
     </div>
 
     <script>
-        // Pagination Logic
+        // Pagination and Sorting Logic
         document.addEventListener('DOMContentLoaded', function () {
             const table = document.getElementById('paymentTable');
-            let rows = table.querySelectorAll('tbody tr');
+            let rows = Array.from(table.querySelectorAll('tbody tr')); // Convert to array for sorting
             const rowsPerPage = 5;
             const pagination = document.getElementById('pagination');
             let currentPage = 1;
+
+            // Function to sort rows by date (descending)
+            function sortRowsByDate() {
+                rows.sort((a, b) => {
+                    const dateA = new Date(a.cells[4].textContent); // Kolom tanggal (index 4)
+                    const dateB = new Date(b.cells[4].textContent);
+                    return dateB - dateA; // Urutkan descending (terbaru dulu)
+                });
+            }
+
+            // Initial sort
+            sortRowsByDate();
 
             function displayRows() {
                 const startIndex = (currentPage - 1) * rowsPerPage;
@@ -682,10 +735,36 @@
                 });
             }
 
+            // Filter payments
+            function filterPayments() {
+                const input = document.getElementById('paymentSearch');
+                const filter = input.value.toLowerCase();
+                const visibleRows = [];
+
+                rows = Array.from(table.querySelectorAll('tbody tr')); // Reset rows
+                for (let i = 0; i < rows.length; i++) {
+                    const tdName = rows[i].getElementsByTagName('td')[1]; // Kolom Member Name
+                    if (tdName) {
+                        let txtValue = tdName.textContent || tdName.innerText;
+                        if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                            rows[i].style.display = '';
+                            visibleRows.push(rows[i]);
+                        } else {
+                            rows[i].style.display = 'none';
+                        }
+                    }
+                }
+
+                rows = visibleRows; // Update rows to filtered rows
+                sortRowsByDate(); // Re-sort filtered rows by date
+                currentPage = 1;
+                displayRows();
+                setupPagination();
+            }
+
             displayRows();
             setupPagination();
         });
-
         // Filter payments
         function filterPayments() {
             const input = document.getElementById('paymentSearch');
@@ -821,6 +900,101 @@
                 }
             });
         }
+
+        function approvePayment(paymentId) {
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: "Anda akan menyetujui pembayaran ini!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#2ecc71',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Ya, setujui!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/approve_payment/${paymentId}`,
+                        type: 'POST',
+                        success: function (response) {
+                            if (response.result === 'success') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil',
+                                    text: response.msg,
+                                    confirmButtonColor: '#16a34a'
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal',
+                                    text: response.msg || 'Tidak dapat menyetujui pembayaran.',
+                                    confirmButtonColor: '#16a34a'
+                                });
+                            }
+                        },
+                        error: function () {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: 'Tidak dapat terhubung ke server. Silakan coba lagi nanti.',
+                                confirmButtonColor: '#16a34a'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        function rejectPayment(paymentId) {
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: "Anda akan menolak pembayaran ini!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#2ecc71',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Ya, tolak!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/reject_payment/${paymentId}`,
+                        type: 'POST',
+                        success: function (response) {
+                            if (response.result === 'success') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil',
+                                    text: response.msg,
+                                    confirmButtonColor: '#16a34a'
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal',
+                                    text: response.msg || 'Tidak dapat menolak pembayaran.',
+                                    confirmButtonColor: '#16a34a'
+                                });
+                            }
+                        },
+                        error: function () {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: 'Tidak dapat terhubung ke server. Silakan coba lagi nanti.',
+                                confirmButtonColor: '#16a34a'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
 
         // Logout
         function logout() {

@@ -677,6 +677,14 @@
                             </div>
                             <div class="preview-amount" id="amountPreview"></div>
                         </div>
+                        <div class="mb-4">
+                            <label for="proofFile" class="form-label">Bukti Pembayaran</label>
+                            <input type="file" class="form-control" id="proofFile" name="proofFile"
+                                accept=".png,.jpg,.jpeg,.pdf" required>
+                            <div class="invalid-feedback">
+                                Silakan unggah bukti pembayaran (PNG, JPG, JPEG, atau PDF).
+                            </div>
+                        </div>
                         <button type="submit" class="btn btn-gradient">Konfirmasi Simpanan</button>
                         <div id="loading-spinner" class="mt-3">
                             <div class="spinner-border text-purple" role="status">
@@ -728,7 +736,6 @@
             }
         }
 
-        // Muat informasi saldo
         function loadBalances() {
             $.ajax({
                 type: "GET",
@@ -747,11 +754,11 @@
             });
         }
 
-        // Tangani pemilihan jenis simpanan
         const depositTypeSelect = document.getElementById('depositType');
         const depositAmountInput = document.getElementById('depositAmount');
         const depositAmountContainer = document.getElementById('depositAmountContainer');
         const amountPreview = document.getElementById('amountPreview');
+        const proofFileInput = document.getElementById('proofFile');
 
         depositTypeSelect.addEventListener('change', function () {
             if (this.value === 'wajib') {
@@ -769,7 +776,6 @@
             }
         });
 
-        // Pratinjau jumlah simpanan secara real-time
         depositAmountInput.addEventListener('input', function () {
             const value = this.value;
             if (depositTypeSelect.value === 'sukarela' && value && value >= 10000) {
@@ -781,13 +787,28 @@
             }
         });
 
-        // Penanganan pengiriman formulir simpanan
+        proofFileInput.addEventListener('change', function () {
+            const file = this.files[0];
+            if (file) {
+                const validExtensions = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
+                if (!validExtensions.includes(file.type)) {
+                    this.classList.add('is-invalid');
+                } else if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                    this.classList.add('is-invalid');
+                    this.nextElementSibling.textContent = 'Ukuran file maksimal 5MB.';
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            }
+        });
+
         const simpananForm = document.getElementById('simpananForm');
         const loadingSpinner = document.getElementById('loading-spinner');
         simpananForm.addEventListener('submit', function (e) {
             e.preventDefault();
             const depositType = depositTypeSelect.value;
             const depositAmount = depositAmountInput.value;
+            const proofFile = proofFileInput.files[0];
 
             if (!depositType) {
                 depositTypeSelect.classList.add('is-invalid');
@@ -801,15 +822,33 @@
                 depositAmountInput.classList.add('is-invalid');
                 return;
             }
+            if (!proofFile) {
+                proofFileInput.classList.add('is-invalid');
+                return;
+            }
+            const validExtensions = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
+            if (!validExtensions.includes(proofFile.type)) {
+                proofFileInput.classList.add('is-invalid');
+                return;
+            }
+            if (proofFile.size > 5 * 1024 * 1024) {
+                proofFileInput.classList.add('is-invalid');
+                proofFileInput.nextElementSibling.textContent = 'Ukuran file maksimal 5MB.';
+                return;
+            }
 
             loadingSpinner.style.display = 'block';
+            const formData = new FormData();
+            formData.append('depositType', depositType);
+            formData.append('depositAmount', depositAmount);
+            formData.append('proofFile', proofFile);
+
             $.ajax({
                 type: "POST",
                 url: "/simpanan",
-                data: {
-                    depositType: depositType,
-                    depositAmount: depositAmount
-                },
+                data: formData,
+                processData: false,
+                contentType: false,
                 success: function (response) {
                     loadingSpinner.style.display = 'none';
                     if (response.result === 'success') {
@@ -827,12 +866,10 @@
             });
         });
 
-        // Muat saldo saat halaman dimuat
         $(document).ready(function () {
             loadBalances();
         });
 
-        // Fungsi logout
         function logout() {
             Swal.fire({
                 title: 'Apakah Anda yakin?',

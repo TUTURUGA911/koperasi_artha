@@ -32,6 +32,11 @@ db = client[DB_NAME]
 
 app = Flask(__name__)
 
+# Ensure the upload folder for deposit proofs exists
+UPLOAD_FOLDER_DEPOSITS = 'static/uploads/deposit_proofs'
+os.makedirs(UPLOAD_FOLDER_DEPOSITS, exist_ok=True)
+app.config['UPLOAD_FOLDER_DEPOSITS'] = UPLOAD_FOLDER_DEPOSITS
+
 def is_logged_in():
     token_receive = request.cookies.get("mytoken")
     if not token_receive:
@@ -424,8 +429,7 @@ def anggota():
         payload = jwt.decode(token_receive, SECRET_KEY, algorithms=["HS256"])
         user_login = db.users.find_one({"username": payload["id"]})
         if user_login['level'] == 1:
-            # Fetch only users with level 2 (exclude level 1 and level 3)
-            users = list(db.users.find({"level": 2}))
+            users = list(db.users.find())
             for user in users:
                 user['_id'] = str(user['_id'])
             return render_template('anggota.html', users=users)
@@ -659,7 +663,7 @@ def simpanan():
             })
         # Cek apakah sudah membayar Simpanan Wajib untuk periode ini
         last_deposit = db.deposits.find_one(
-            {'user_id': user_info['user_id'], 'deposit_type': 'wajib'},
+            {'user_id': user_info['user_id'], 'deposit_type': 'wajib', 'status': 'completed'},
             sort=[('deposit_date', -1)]
         )
         if last_deposit:
@@ -680,6 +684,18 @@ def simpanan():
             'msg': f'Jumlah Simpanan Sukarela minimal Rp {JUMLAH_MINIMUM_SUKARELA:,}'
         })
 
+    # Handle proof file upload
+    proof_file = request.files.get('proofFile')
+    proof_filename = None
+    if proof_file and allowed_file(proof_file.filename):
+        if proof_file.content_length > 5 * 1024 * 1024:  # Max 5MB
+            return jsonify({'result': 'gagal', 'msg': 'Ukuran file bukti pembayaran maksimal 5MB.'})
+        filename = secure_filename(f"{uuid.uuid4()}_{proof_file.filename}")
+        proof_file.save(os.path.join(app.config['UPLOAD_FOLDER_DEPOSITS'], filename))
+        proof_filename = filename
+    else:
+        return jsonify({'result': 'gagal', 'msg': 'Silakan unggah bukti pembayaran (PNG, JPG, JPEG, atau PDF).'})
+    
     # Buat ID simpanan unik
     last_deposit = db.deposits.find_one(sort=[("deposit_id", -1)])
     if last_deposit and 'deposit_id' in last_deposit:
@@ -697,29 +713,14 @@ def simpanan():
         "deposit_amount": deposit_amount,
         "deposit_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "can_withdraw": deposit_type == 'sukarela',
-        "status": "active" if deposit_type == 'sukarela' else "completed"  # Add status field
+        "status": "pending",  # Initial status is pending
+        "proof_file": proof_filename
     }
 
     # Simpan data simpanan
     db.deposits.insert_one(deposit_data)
 
-    # Perbarui total simpanan pengguna
-    deposit_field = 'total_deposit_wajib' if deposit_type == 'wajib' else 'total_deposit_sukarela'
-    db.users.update_one(
-        {'user_id': user_info['user_id']},
-        {'$inc': {deposit_field: deposit_amount}}
-    )
-
-    # Terapkan bunga hanya untuk Simpanan Sukarela
-    if deposit_type == 'sukarela':
-        total_sukarela = user_info.get('total_deposit_sukarela', 0) + deposit_amount
-        total_sukarela_with_interest = total_sukarela * 1.02  # Bunga 2%
-        db.users.update_one(
-            {'user_id': user_info['user_id']},
-            {'$set': {'total_deposit_sukarela_with_interest': total_sukarela_with_interest}}
-        )
-
-    return jsonify({'result': 'success', 'msg': 'Simpanan berhasil'})
+    return jsonify({'result': 'success', 'msg': 'Simpanan berhasil diajukan dan menunggu persetujuan admin'})
 
 @app.route('/savings/<savings_id>', methods=['GET'])
 @login_required
@@ -1005,7 +1006,6 @@ def get_active_loans():
             'result': 'gagal',
             'msg': f'Terjadi kesalahan saat mengambil data pinjaman: {str(e)}'
         }), 500
-
 @app.route('/pay_installment', methods=['POST'])
 @login_required
 def pay_installment():
@@ -1023,43 +1023,12 @@ def pay_installment():
         except (ValueError, TypeError):
             return jsonify({'result': 'gagal', 'msg': 'Jumlah angsuran harus berupa angka yang valid.'})
 
-        # Validasi pinjaman
+        # Validate loan
         loan = db.loans.find_one({'loan_id': loan_id, 'user_id': user_info['user_id'], 'status': 'active'})
         if not loan:
             return jsonify({'result': 'gagal', 'msg': 'Pinjaman tidak ditemukan atau tidak aktif.'})
 
-        # Hitung sisa pokok dan angsuran bulanan
-        remaining_balance = loan['loan_amount'] - loan.get('amount_paid', 0)
-        monthly_installment = loan['loan_amount'] / loan['loan_term']
-        min_installment = math.ceil(monthly_installment)  # Bulatkan ke atas, misalnya 833333.333 -> 833334
-
-        # Validasi jumlah angsuran
-        if remaining_balance <= min_installment * 2:
-            # Jika sisa pokok kurang dari atau sama dengan 2x angsuran bulanan, izinkan pelunasan atau parsial
-            if installment_amount < 1:
-                return jsonify({
-                    'result': 'gagal',
-                    'msg': f'Jumlah angsuran minimal Rp 1. Anda memasukkan Rp {installment_amount:,.0f}.'
-                })
-            if installment_amount > remaining_balance:
-                return jsonify({
-                    'result': 'gagal',
-                    'msg': f'Jumlah angsuran tidak boleh melebihi sisa pokok Rp {remaining_balance:,.0f}. Anda memasukkan Rp {installment_amount:,.0f}.'
-                })
-        else:
-            # Jika sisa pokok lebih besar, terapkan angsuran minimal
-            if installment_amount < min_installment:
-                return jsonify({
-                    'result': 'gagal',
-                    'msg': f'Jumlah angsuran minimal Rp {min_installment:,.0f}. Anda memasukkan Rp {installment_amount:,.0f}. Untuk pelunasan penuh, masukkan Rp {remaining_balance:,.0f}.'
-                })
-            if installment_amount > remaining_balance:
-                return jsonify({
-                    'result': 'gagal',
-                    'msg': f'Jumlah angsuran tidak boleh melebihi sisa pokok Rp {remaining_balance:,.0f}. Anda memasukkan Rp {installment_amount:,.0f}.'
-                })
-
-        # Tangani bukti pembayaran
+        # Handle proof file
         proof_file = request.files.get('paymentProof')
         proof_filename = None
         if proof_file and allowed_file(proof_file.filename):
@@ -1068,12 +1037,10 @@ def pay_installment():
             filename = secure_filename(f"{uuid.uuid4()}_{proof_file.filename}")
             proof_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             proof_filename = filename
-        elif not proof_file:
-            return jsonify({'result': 'gagal', 'msg': 'Silakan unggah bukti pembayaran.'})
         else:
-            return jsonify({'result': 'gagal', 'msg': 'Format file tidak valid. Gunakan PNG, JPG, JPEG, atau PDF.'})
+            return jsonify({'result': 'gagal', 'msg': 'Silakan unggah bukti pembayaran yang valid!'})
 
-        # Catat pembayaran
+        # Record payment with pending status
         payment_id = f"P{datetime.now().strftime('%Y%m%d%H%M%S')}"
         payment_data = {
             'payment_id': payment_id,
@@ -1082,27 +1049,9 @@ def pay_installment():
             'amount': installment_amount,
             'payment_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'proof_file': proof_filename,
-            'status': 'Belum Lunas'  # Status awal
+            'status': 'pending'  # Set status to pending
         }
         db.payments.insert_one(payment_data)
-
-        # Perbarui jumlah terbayar
-        db.loans.update_one(
-            {'loan_id': loan_id},
-            {'$inc': {'amount_paid': installment_amount}}
-        )
-
-        # Periksa apakah pinjaman lunas
-        new_remaining_balance = remaining_balance - installment_amount
-        if new_remaining_balance <= 0:
-            db.loans.update_one(
-                {'loan_id': loan_id},
-                {'$set': {'status': 'Lunas'}}
-            )
-            db.users.update_one(
-                {'user_id': user_info['user_id']},
-                {'$inc': {'total_loan': -loan['loan_amount']}}
-            )
 
         return jsonify({
             'result': 'success',
@@ -1231,71 +1180,58 @@ def get_loan_payment_history():
 def get_transaction_history():
     try:
         user_info = get_user_info()
-        if not user_info:
-            return jsonify({'result': 'fail', 'msg': 'Unauthorized'})
-
         user_id = user_info['user_id']
+
+        # Ambil transaksi simpanan dari koleksi deposits
+        deposits = list(db.deposits.find({'user_id': user_id}).sort('deposit_date', -1))  # Urutkan terbaru dulu
         transactions = []
 
-        # Fetch deposits
-        deposits = db.deposits.find({'user_id': user_id}).sort('deposit_date', -1).limit(3)
         for deposit in deposits:
             transactions.append({
-                'date': deposit['deposit_date'],
+                'date': datetime.strptime(deposit['deposit_date'], "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d"),
                 'type': f"Simpanan {deposit['deposit_type'].capitalize()}",
                 'amount': deposit['deposit_amount'],
-                'status': 'Sukses'
+                'status': deposit.get('status', 'pending').capitalize()  # Gunakan status asli
             })
 
-        # Fetch withdrawals
-        withdrawals = db.withdrawals.find({'user_id': user_id}).sort('withdrawal_date', -1).limit(3)
-        for withdrawal in withdrawals:
-            transactions.append({
-                'date': withdrawal['withdrawal_date'],
-                'type': 'Penarikan Sukarela',
-                'amount': -withdrawal['withdraw_amount'],  # Negative for withdrawals
-                'status': 'Sukses'
-            })
-
-        # Fetch loans
-        loans = db.loans.find({'user_id': user_id}).sort('loan_date', -1).limit(3)
+        # Tambahkan transaksi lain jika ada (misalnya, pinjaman atau pembayaran)
+        # Contoh: Ambil data pinjaman
+        loans = list(db.loans.find({'user_id': user_id}).sort('loan_date', -1))
         for loan in loans:
             transactions.append({
-                'date': loan['loan_date'],
-                'type': f"Pinjaman ({loan['loan_purpose']})",
-                'amount': loan['loan_amount'],
-                'status': loan['status'].capitalize()
+                'date': datetime.strptime(loan['loan_date'], "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d"),
+                'type': 'Pinjaman',
+                'amount': -loan['loan_amount'],  # Negatif untuk pinjaman
+                'status': loan.get('status', 'pending').capitalize()
             })
 
-        # Fetch payments
-        payments = db.payments.find({'user_id': user_id}).sort('payment_date', -1).limit(3)
+        # Tambahkan transaksi pembayaran
+        payments = list(db.payments.find({'user_id': user_id}).sort('payment_date', -1))
         for payment in payments:
             transactions.append({
-                'date': payment['payment_date'],
+                'date': datetime.strptime(payment['payment_date'], "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d"),
                 'type': 'Pembayaran Angsuran',
-                'amount': -payment['amount'],  # Negative for payments
-                'status': payment['status'].capitalize()
+                'amount': -payment['amount'],  # Negatif untuk pembayaran
+                'status': payment.get('status', 'pending').capitalize()
+            })
+            
+        # Tambahkan transaksi penarikan simpanan
+        withdrawals = list(db.withdrawals.find({'user_id': user_id}).sort('withdrawal_date', -1))
+        for withdrawal in withdrawals:
+            transactions.append({
+                'date': datetime.strptime(withdrawal['withdrawal_date'], "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d"),
+                'type': 'Penarikan Simpanan',
+                'amount': -withdrawal['withdraw_amount'],  # Negatif untuk penarikan
+                'status': withdrawal.get('status', 'pending').capitalize()
             })
 
-        # Sort all transactions by date (descending) and limit to 3
-        transactions.sort(key=lambda x: datetime.strptime(x['date'], "%Y-%m-%d %H:%M:%S"), reverse=True)
-        transactions = transactions[:3]
+        # Urutkan semua transaksi berdasarkan tanggal (terbaru dulu)
+        transactions.sort(key=lambda x: datetime.strptime(x['date'], "%Y-%m-%d"), reverse=True)
 
-        # Format dates and amounts for display
-        for transaction in transactions:
-            transaction['date'] = datetime.strptime(transaction['date'], "%Y-%m-%d %H:%M:%S").strftime("%d %b %Y")
-            transaction['amount'] = float(transaction['amount'])
-
-        return jsonify({
-            'result': 'success',
-            'transactions': transactions
-        })
+        return jsonify({'result': 'success', 'transactions': transactions})
     except Exception as e:
-        return jsonify({
-            'result': 'fail',
-            'msg': f'Error fetching transaction history: {str(e)}'
-        }), 500
-
+        return jsonify({'result': 'fail', 'msg': str(e)}), 500
+    
 @app.route('/update_loan_status/<loan_id>', methods=['POST'])
 @login_required
 def update_loan_status(loan_id):
@@ -1340,7 +1276,8 @@ def loans():
     if not user_info or not is_admin(user_info):
         return redirect(url_for("index", msg="You are not authorized to access the loans page!"))
 
-    loans = list(db.loans.find())
+    # Fetch loans sorted by loan_date in descending order
+    loans = list(db.loans.find().sort("loan_date", -1))  # -1 for descending order
     for loan in loans:
         user = db.users.find_one({'user_id': loan['user_id']})
         loan['member_name'] = user['profile_name'] if user else 'Unknown'
@@ -1363,6 +1300,16 @@ def saldo():
     
     return render_template('saldo_user.html', user_info=user_info, total_wajib=total_wajib, total_sukarela=total_sukarela)
 
+# Route to serve deposit proof images
+@app.route('/uploads/deposit_proofs/<filename>')
+@login_required
+def serve_deposit_proof(filename):
+    user_info = get_user_info()
+    if not user_info or not is_admin(user_info):
+        return jsonify({'result': 'fail', 'msg': 'Only admins can view deposit proofs!'}), 403
+    return send_file(os.path.join(app.config['UPLOAD_FOLDER_DEPOSITS'], filename))
+
+
 @app.route('/savings', methods=['GET'])
 @login_required
 def savings():
@@ -1370,8 +1317,8 @@ def savings():
     if not user_info or not is_admin(user_info):
         return redirect(url_for("index", msg="You are not authorized to access the savings page!"))
 
-    # Fetch all savings (deposits) from the database
-    deposits = list(db.deposits.find())
+    # Fetch all savings (deposits) from the database, sorted by deposit_date in descending order
+    deposits = list(db.deposits.find().sort("deposit_date", -1))  # -1 untuk descending (terbaru dulu)
     for deposit in deposits:
         # Get member name from users collection
         user = db.users.find_one({'user_id': deposit['user_id']})
@@ -1380,10 +1327,12 @@ def savings():
         deposit['amount'] = f"Rp {deposit['deposit_amount']:,.0f}"
         # Format date
         deposit['start_date'] = datetime.strptime(deposit['deposit_date'], "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d")
-        # Map deposit_type to status for display (customize as needed)
-        deposit['status'] = 'Active' if deposit['deposit_type'] == 'sukarela' else 'Completed'
+        # Use the actual status from the deposit
+        deposit['status'] = deposit.get('status', 'pending').capitalize()
         # Rename deposit_id to savings_id for template consistency
         deposit['savings_id'] = deposit['deposit_id']
+        # Format deposit type
+        deposit['deposit_type'] = deposit['deposit_type'].capitalize()
 
     return render_template('simpanan_admin.html', savings=deposits)
 
@@ -1400,27 +1349,44 @@ def update_savings_status(savings_id):
         if new_status not in allowed_statuses:
             return jsonify({'result': 'fail', 'msg': 'Invalid status!'}), 400
 
-        # Update savings status in deposits collection
         deposit = db.deposits.find_one({'deposit_id': savings_id})
         if not deposit:
             return jsonify({'result': 'fail', 'msg': 'Savings not found!'}), 404
 
+        # Update savings status
         db.deposits.update_one(
             {'deposit_id': savings_id},
             {'$set': {'status': new_status}}
         )
 
-        # Optional: Adjust user totals if status is 'rejected' or 'completed'
-        if new_status == 'rejected':
+        # If status is changed to 'completed', update user's balance
+        if new_status == 'completed' and deposit['status'] != 'completed':
+            deposit_field = 'total_deposit_wajib' if deposit['deposit_type'] == 'wajib' else 'total_deposit_sukarela'
+            db.users.update_one(
+                {'user_id': deposit['user_id']},
+                {'$inc': {deposit_field: deposit['deposit_amount']}}
+            )
+            if deposit['deposit_type'] == 'sukarela':
+                total_sukarela = db.users.find_one({'user_id': deposit['user_id']}).get('total_deposit_sukarela', 0)
+                total_sukarela_with_interest = total_sukarela * 1.02  # Apply 2% interest
+                db.users.update_one(
+                    {'user_id': deposit['user_id']},
+                    {'$set': {'total_deposit_sukarela_with_interest': total_sukarela_with_interest}}
+                )
+
+        # If status is changed to 'rejected' from 'completed', deduct the amount
+        elif new_status == 'rejected' and deposit['status'] == 'completed':
             deposit_field = 'total_deposit_wajib' if deposit['deposit_type'] == 'wajib' else 'total_deposit_sukarela'
             db.users.update_one(
                 {'user_id': deposit['user_id']},
                 {'$inc': {deposit_field: -deposit['deposit_amount']}}
             )
             if deposit['deposit_type'] == 'sukarela':
+                total_sukarela = db.users.find_one({'user_id': deposit['user_id']}).get('total_deposit_sukarela', 0)
+                total_sukarela_with_interest = total_sukarela * 1.02  # Recalculate interest
                 db.users.update_one(
                     {'user_id': deposit['user_id']},
-                    {'$set': {'total_deposit_sukarela_with_interest': 0}}
+                    {'$set': {'total_deposit_sukarela_with_interest': total_sukarela_with_interest}}
                 )
 
         return jsonify({
@@ -1429,7 +1395,7 @@ def update_savings_status(savings_id):
         })
     except Exception as e:
         return jsonify({'result': 'fail', 'msg': f'Error: {str(e)}'}), 500
-
+    
 @app.route('/delete_saving/<savings_id>', methods=['DELETE'])
 @login_required
 def delete_saving(savings_id):
@@ -1530,28 +1496,29 @@ def update_payment_status(payment_id):
         if not payment:
             return jsonify({'result': 'fail', 'msg': 'Payment not found!'}), 404
 
-        # If status changes from lunas to something else, reverse loan amount_paid
+        # If the status is being changed from 'lunas' to something else, reverse the loan amount_paid
         if payment['status'] == 'lunas' and new_status != 'lunas':
             db.loans.update_one(
                 {'loan_id': payment['loan_id']},
                 {'$inc': {'amount_paid': -payment['amount']}}
             )
-            # Check if loan should revert to active
+            # Check if the loan should revert to active
             loan = db.loans.find_one({'loan_id': payment['loan_id']})
-            if loan['amount_paid'] < loan['loan_amount']:
+            if loan and loan['amount_paid'] < loan['loan_amount']:
                 db.loans.update_one(
                     {'loan_id': payment['loan_id']},
                     {'$set': {'status': 'active'}}
                 )
-        # If status changes to lunas, update loan amount_paid
+
+        # If the status is being changed to 'lunas', update the loan amount_paid
         elif new_status == 'lunas' and payment['status'] != 'lunas':
             db.loans.update_one(
                 {'loan_id': payment['loan_id']},
                 {'$inc': {'amount_paid': payment['amount']}}
             )
-            # Check if loan is fully paid
+            # Check if the loan is fully paid
             loan = db.loans.find_one({'loan_id': payment['loan_id']})
-            if loan['amount_paid'] >= loan['loan_amount']:
+            if loan and loan['amount_paid'] >= loan['loan_amount']:
                 db.loans.update_one(
                     {'loan_id': payment['loan_id']},
                     {'$set': {'status': 'completed'}}
@@ -1561,7 +1528,7 @@ def update_payment_status(payment_id):
                     {'$inc': {'total_loan': -loan['loan_amount']}}
                 )
 
-        # Update payment status
+        # Update the payment status
         db.payments.update_one(
             {'payment_id': payment_id},
             {'$set': {'status': new_status}}
@@ -1570,6 +1537,70 @@ def update_payment_status(payment_id):
         return jsonify({
             'result': 'success',
             'msg': f'Payment {payment_id} status updated to {new_status.capitalize()}!'
+        })
+    except Exception as e:
+        return jsonify({'result': 'fail', 'msg': f'Error: {str(e)}'}), 500
+    
+@app.route('/reject_payment/<payment_id>', methods=['POST'])
+@login_required
+def reject_payment(payment_id):
+    user_info = get_user_info()
+    if not user_info or not is_admin(user_info):
+        return jsonify({'result': 'fail', 'msg': 'Only admins can reject payments!'}), 403
+
+    try:
+        # Update payment status to rejected
+        db.payments.update_one(
+            {'payment_id': payment_id},
+            {'$set': {'status': 'rejected'}}
+        )
+
+        return jsonify({
+            'result': 'success',
+            'msg': f'Payment {payment_id} has been rejected!'
+        })
+    except Exception as e:
+        return jsonify({'result': 'fail', 'msg': f'Error: {str(e)}'}), 500
+
+@app.route('/approve_payment/<payment_id>', methods=['POST'])
+@login_required
+def approve_payment(payment_id):
+    user_info = get_user_info()
+    if not user_info or not is_admin(user_info):
+        return jsonify({'result': 'fail', 'msg': 'Only admins can approve payments!'}), 403
+
+    try:
+        payment = db.payments.find_one({'payment_id': payment_id})
+        if not payment:
+            return jsonify({'result': 'fail', 'msg': 'Payment not found!'}), 404
+
+        # Update payment status to completed
+        db.payments.update_one(
+            {'payment_id': payment_id},
+            {'$set': {'status': 'completed'}}
+        )
+
+        # Update loan's amount_paid
+        db.loans.update_one(
+            {'loan_id': payment['loan_id']},
+            {'$inc': {'amount_paid': payment['amount']}}
+        )
+
+        # Check if loan is fully paid
+        loan = db.loans.find_one({'loan_id': payment['loan_id']})
+        if loan['amount_paid'] >= loan['loan_amount']:
+            db.loans.update_one(
+                {'loan_id': payment['loan_id']},
+                {'$set': {'status': 'completed'}}
+            )
+            db.users.update_one(
+                {'user_id': payment['user_id']},
+                {'$inc': {'total_loan': -loan['loan_amount']}}
+            )
+
+        return jsonify({
+            'result': 'success',
+            'msg': f'Payment {payment_id} approved and loan amount updated!'
         })
     except Exception as e:
         return jsonify({'result': 'fail', 'msg': f'Error: {str(e)}'}), 500
@@ -2371,4 +2402,4 @@ def logout():
 
 
 if __name__ == '__main__':
-    app.run('0.0.0.0', port=5000, debug=True)
+    app.run('0.0.0.0', port=3000, debug=True)

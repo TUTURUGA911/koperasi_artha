@@ -104,7 +104,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for user in users if user.level == 2 %}
+                    {% for user in users if user.level !=1 %}
                     <tr>
                         <td>{{ user.user_id }}</td>
                         <td>{{ user.profile_name }}</td>
@@ -145,13 +145,45 @@
     </div>
 
     <script>
-        // Pagination
+        // Pagination and Sorting
         document.addEventListener('DOMContentLoaded', function () {
             const table = document.getElementById('membersTable');
-            const rows = table.querySelectorAll('tbody tr');
+            const tbody = table.querySelector('tbody');
+            let rows = Array.from(tbody.querySelectorAll('tr'));
             const rowsPerPage = 5;
             const pagination = document.getElementById('pagination');
             let currentPage = 1;
+            let sortDirection = 'desc'; // Default sort direction: descending (newest first)
+
+            // Function to parse date strings (DD/MM/YYYY or YYYY-MM-DD)
+            function parseDate(dateStr) {
+                // Handle different date formats
+                let parts;
+                if (dateStr.includes('/')) {
+                    parts = dateStr.split('/');
+                    return new Date(parts[2], parts[1] - 1, parts[0]); // DD/MM/YYYY
+                } else if (dateStr.includes('-')) {
+                    parts = dateStr.split('-');
+                    return new Date(parts[0], parts[1] - 1, parts[2]); // YYYY-MM-DD
+                }
+                return new Date(dateStr);
+            }
+
+            // Function to sort rows by date
+            function sortRows(direction) {
+                rows.sort((a, b) => {
+                    const dateA = parseDate(a.cells[3].textContent);
+                    const dateB = parseDate(b.cells[3].textContent);
+                    return direction === 'asc' ? dateA - dateB : dateB - dateA;
+                });
+
+                // Re-append sorted rows to tbody
+                tbody.innerHTML = '';
+                rows.forEach(row => tbody.appendChild(row));
+            }
+
+            // Initial sort
+            sortRows(sortDirection);
 
             function displayRows() {
                 const startIndex = (currentPage - 1) * rowsPerPage;
@@ -217,199 +249,209 @@
                 });
             }
 
-            displayRows();
-            setupPagination();
-        });
-
-        // Filter members
-        function filterMembers() {
-            const input = document.getElementById('memberSearch');
-            const filter = input.value.toLowerCase();
-            const table = document.getElementById('membersTable');
-            const trs = table.tBodies[0].getElementsByTagName('tr');
-
-            for (let i = 0; i < trs.length; i++) {
-                const tdName = trs[i].getElementsByTagName('td')[1];
-                if (tdName) {
-                    let txtValue = tdName.textContent || tdName.innerText;
-                    trs[i].style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? '' : 'none';
-                }
-            }
-
-            // Reset pagination after filtering
-            currentPage = 1;
-            displayRows();
-            setupPagination();
-        }
-
-        // Logout
-        function logout() {
-            Swal.fire({
-                title: 'Apakah Anda yakin?',
-                text: "Anda akan keluar!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#2ecc71',
-                cancelButtonColor: '#ef4444',
-                confirmButtonText: 'Ya, keluar!',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    try {
-                        Cookies.remove('mytoken');
-                        Cookies.remove('mytoken', { path: '/' });
-                        document.cookie = "mytoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                        Swal.fire(
-                            'Keluar!',
-                            'Anda telah berhasil keluar.',
-                            'success'
-                        ).then(() => {
-                            window.location.href = '/';
-                        });
-                    } catch (error) {
-                        console.error("Error during logout:", error);
-                        window.location.href = '/';
+            // Filter members
+            function filterMembers() {
+                const input = document.getElementById('memberSearch');
+                const filter = input.value.toLowerCase();
+                rows = Array.from(tbody.getElementsByTagName('tr')).filter(row => {
+                    const tdName = row.getElementsByTagName('td')[1];
+                    if (tdName) {
+                        let txtValue = tdName.textContent || tdName.innerText;
+                        return txtValue.toLowerCase().indexOf(filter) > -1;
                     }
-                }
-            });
-        }
+                    return false;
+                });
 
-        // Delete user
-        function deleteUser(username) {
-            Swal.fire({
-                title: 'Apakah Anda yakin?',
-                text: "Anda akan menghapus pengguna ini!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#2ecc71',
-                cancelButtonColor: '#ef4444',
-                confirmButtonText: 'Ya, hapus!',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: '/delete_user/' + username,
-                        type: 'DELETE',
-                        success: function (response) {
-                            if (response.result === 'success') {
-                                Swal.fire('Dihapus!', response.msg, 'success').then(() => {
-                                    location.reload();
-                                });
-                            } else {
-                                Swal.fire('Gagal!', response.msg, 'error');
-                            }
-                        },
-                        error: function () {
-                            Swal.fire('Gagal!', 'Terjadi kesalahan saat menghapus pengguna.', 'error');
-                        }
-                    });
-                }
-            });
-        }
+                // Re-sort filtered rows
+                sortRows(sortDirection);
 
-        // Block user
-        function blockUser(username) {
-            Swal.fire({
-                title: 'Apakah Anda yakin?',
-                text: "Anda akan memblokir pengguna ini!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#2ecc71',
-                cancelButtonColor: '#ef4444',
-                confirmButtonText: 'Ya, blokir!',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: '/blockuser',
-                        type: 'POST',
-                        data: {
-                            username_give: username,
-                            reason_give: 'Violation of terms',
-                            date_give: new Date().toISOString()
-                        },
-                        success: function (response) {
-                            if (response.result === 'success') {
-                                Swal.fire('Diblokir!', response.msg, 'success').then(() => {
-                                    location.reload();
-                                });
-                            } else {
-                                Swal.fire('Gagal!', response.msg, 'error');
-                            }
-                        },
-                        error: function () {
-                            Swal.fire('Gagal!', 'Terjadi kesalahan saat memblokir pengguna.', 'error');
-                        }
-                    });
-                }
-            });
-        }
-
-        // Unblock user
-        function unblockUser(username) {
-            Swal.fire({
-                title: 'Apakah Anda yakin?',
-                text: "Anda akan membuka blokir pengguna ini!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#2ecc71',
-                cancelButtonColor: '#ef4444',
-                confirmButtonText: 'Ya, buka blokir!',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: '/unblockuser',
-                        type: 'POST',
-                        data: {
-                            username_give: username
-                        },
-                        success: function (response) {
-                            if (response.result === 'success') {
-                                Swal.fire('Dibuka!', response.msg, 'success').then(() => {
-                                    location.reload();
-                                });
-                            } else {
-                                Swal.fire('Gagal!', response.msg, 'error');
-                            }
-                        },
-                        error: function () {
-                            Swal.fire('Gagal!', 'Terjadi kesalahan saat membuka blokir pengguna.', 'error');
-                        }
-                    });
-                }
-            });
-        }
-
-        // Toggle sidebar
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('overlay');
-            sidebar.classList.toggle('active');
-            overlay.classList.toggle('show');
-        }
-
-        // Toggle sidebar collapse
-        function toggleCollapse() {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('collapsed');
-        }
-
-        // Toggle theme
-        function toggleTheme() {
-            const body = document.body;
-            const themeSwitch = document.getElementById('themeSwitch');
-            if (themeSwitch.checked) {
-                body.setAttribute('data-theme', 'dark');
-                localStorage.setItem('theme', 'dark');
-            } else {
-                body.removeAttribute('data-theme');
-                localStorage.setItem('theme', 'light');
+                // Reset pagination
+                currentPage = 1;
+                displayRows();
+                setupPagination();
             }
-        }
 
-        // Load saved theme
-        document.addEventListener('DOMContentLoaded', function () {
+            // Toggle sort direction when clicking the "Tanggal Bergabung" header
+            const dateHeader = table.querySelector('th:nth-child(4)');
+            dateHeader.style.cursor = 'pointer';
+            dateHeader.addEventListener('click', () => {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                sortRows(sortDirection);
+                currentPage = 1;
+                displayRows();
+                setupPagination();
+            });
+
+            displayRows();
+            setupPagination();
+
+            // Logout
+            function logout() {
+                Swal.fire({
+                    title: 'Apakah Anda yakin?',
+                    text: "Anda akan keluar!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#2ecc71',
+                    cancelButtonColor: '#ef4444',
+                    confirmButtonText: 'Ya, keluar!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        try {
+                            Cookies.remove('mytoken');
+                            Cookies.remove('mytoken', { path: '/' });
+                            document.cookie = "mytoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                            Swal.fire(
+                                'Keluar!',
+                                'Anda telah berhasil keluar.',
+                                'success'
+                            ).then(() => {
+                                window.location.href = '/';
+                            });
+                        } catch (error) {
+                            console.error("Error during logout:", error);
+                            window.location.href = '/';
+                        }
+                    }
+                });
+            }
+
+            // Delete user
+            function deleteUser(username) {
+                Swal.fire({
+                    title: 'Apakah Anda yakin?',
+                    text: "Anda akan menghapus pengguna ini!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#2ecc71',
+                    cancelButtonColor: '#ef4444',
+                    confirmButtonText: 'Ya, hapus!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/delete_user/' + username,
+                            type: 'DELETE',
+                            success: function (response) {
+                                if (response.result === 'success') {
+                                    Swal.fire('Dihapus!', response.msg, 'success').then(() => {
+                                        location.reload();
+                                    });
+                                } else {
+                                    Swal.fire('Gagal!', response.msg, 'error');
+                                }
+                            },
+                            error: function () {
+                                Swal.fire('Gagal!', 'Terjadi kesalahan saat menghapus pengguna.', 'error');
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Block user
+            function blockUser(username) {
+                Swal.fire({
+                    title: 'Apakah Anda yakin?',
+                    text: "Anda akan memblokir pengguna ini!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#2ecc71',
+                    cancelButtonColor: '#ef4444',
+                    confirmButtonText: 'Ya, blokir!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/blockuser',
+                            type: 'POST',
+                            data: {
+                                username_give: username,
+                                reason_give: 'Violation of terms',
+                                date_give: new Date().toISOString()
+                            },
+                            success: function (response) {
+                                if (response.result === 'success') {
+                                    Swal.fire('Diblokir!', response.msg, 'success').then(() => {
+                                        location.reload();
+                                    });
+                                } else {
+                                    Swal.fire('Gagal!', response.msg, 'error');
+                                }
+                            },
+                            error: function () {
+                                Swal.fire('Gagal!', 'Terjadi kesalahan saat memblokir pengguna.', 'error');
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Unblock user
+            function unblockUser(username) {
+                Swal.fire({
+                    title: 'Apakah Anda yakin?',
+                    text: "Anda akan membuka blokir pengguna ini!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#2ecc71',
+                    cancelButtonColor: '#ef4444',
+                    confirmButtonText: 'Ya, buka blokir!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/unblockuser',
+                            type: 'POST',
+                            data: {
+                                username_give: username
+                            },
+                            success: function (response) {
+                                if (response.result === 'success') {
+                                    Swal.fire('Dibuka!', response.msg, 'success').then(() => {
+                                        location.reload();
+                                    });
+                                } else {
+                                    Swal.fire('Gagal!', response.msg, 'error');
+                                }
+                            },
+                            error: function () {
+                                Swal.fire('Gagal!', 'Terjadi kesalahan saat membuka blokir pengguna.', 'error');
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Toggle sidebar
+            function toggleSidebar() {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('overlay');
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('show');
+            }
+
+            // Toggle sidebar collapse
+            function toggleCollapse() {
+                const sidebar = document.getElementById('sidebar');
+                sidebar.classList.toggle('collapsed');
+            }
+
+            // Toggle theme
+            function toggleTheme() {
+                const body = document.body;
+                const themeSwitch = document.getElementById('themeSwitch');
+                if (themeSwitch.checked) {
+                    body.setAttribute('data-theme', 'dark');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    body.removeAttribute('data-theme');
+                    localStorage.setItem('theme', 'light');
+                }
+            }
+
+            // Load saved theme
             const savedTheme = localStorage.getItem('theme');
             const themeSwitch = document.getElementById('themeSwitch');
             if (savedTheme === 'dark') {

@@ -42,11 +42,11 @@
             /* Teal */
             --accent-orange: #f97316;
             /* Orange */
-            --accent-purple: #8b5cf6;
+            --accent-purple: #c1bd37;
             /* Purple */
             --danger-color: #ef4444;
             /* Red */
-            --warning-color: #f59e0b;
+            --warning-color: #78f50b;
             /* Yellow */
             --success-color: #10b981;
             /* Bright green */
@@ -438,6 +438,25 @@
             color: var(--text-color);
         }
 
+        /* Proof Image */
+        .proof-image {
+            max-width: 50px;
+            max-height: 50px;
+            border-radius: 4px;
+            cursor: pointer;
+            object-fit: cover;
+        }
+
+        .proof-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+
+        .proof-link:hover {
+            text-decoration: underline;
+        }
+
         /* Pagination */
         .pagination {
             display: flex;
@@ -508,6 +527,11 @@
             .status-select {
                 width: 100%;
             }
+
+            .proof-image {
+                max-width: 40px;
+                max-height: 40px;
+            }
         }
     </style>
 </head>
@@ -575,8 +599,10 @@
                     <tr>
                         <th scope="col">Savings ID</th>
                         <th scope="col">Member Name</th>
+                        <th scope="col">Type</th>
                         <th scope="col">Savings Amount</th>
                         <th scope="col">Date</th>
+                        <th scope="col">Proof</th>
                         <th scope="col">Status</th>
                         <th scope="col" class="text-center">Actions</th>
                     </tr>
@@ -586,8 +612,26 @@
                     <tr>
                         <td>{{ saving.savings_id }}</td>
                         <td>{{ saving.member_name }}</td>
+                        <td>{{ saving.deposit_type|capitalize }}</td>
                         <td>{{ saving.amount }}</td>
                         <td>{{ saving.start_date }}</td>
+                        <td>
+                            {% if saving.proof_file %}
+                            {% if saving.proof_file.lower().endswith(('.png', '.jpg', '.jpeg')) %}
+                            <a href="/uploads/deposit_proofs/{{ saving.proof_file }}" target="_blank">
+                                <img src="/uploads/deposit_proofs/{{ saving.proof_file }}" class="proof-image"
+                                    alt="Proof of Deposit">
+                            </a>
+                            {% else %}
+                            <a href="/uploads/deposit_proofs/{{ saving.proof_file }}" target="_blank"
+                                class="proof-link">
+                                View Proof
+                            </a>
+                            {% endif %}
+                            {% else %}
+                            No Proof
+                            {% endif %}
+                        </td>
                         <td>
                             <span class="badge {{ saving.status.lower() }}">
                                 {{ saving.status }}
@@ -604,10 +648,9 @@
                                 title="Update Status">
                                 <option value="pending" {{ 'selected' if saving.status.lower()=='pending' else '' }}>
                                     Pending</option>
-                                <option value="active" {{ 'selected' if saving.status.lower()=='active' else '' }}>
-                                    Active</option>
                                 <option value="completed" {{ 'selected' if saving.status.lower()=='completed' else ''
-                                    }}>Completed</option>
+                                    }}>
+                                    Completed</option>
                                 <option value="rejected" {{ 'selected' if saving.status.lower()=='rejected' else '' }}>
                                     Rejected</option>
                             </select>
@@ -620,7 +663,7 @@
                     </tr>
                     {% else %}
                     <tr class="no-data">
-                        <td colspan="6" class="text-center">No savings found</td>
+                        <td colspan="8" class="text-center">No savings found</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -637,6 +680,14 @@
             const rowsPerPage = 5;
             let currentPage = 1;
             let allRows = Array.from(tableBody.querySelectorAll('tr:not(.no-data)'));
+
+            // Sort rows by date (latest first)
+            allRows.sort((a, b) => {
+                const dateA = new Date(a.querySelector('td:nth-child(5)').textContent);
+                const dateB = new Date(b.querySelector('td:nth-child(5)').textContent);
+                return dateB - dateA; // Descending order (latest first)
+            });
+
             let visibleRows = allRows;
 
             function displayRows() {
@@ -649,7 +700,7 @@
                 });
 
                 if (visibleRows.length === 0) {
-                    tableBody.innerHTML = '<tr class="no-data"><td colspan="6" class="text-center">No savings found</td></tr>';
+                    tableBody.innerHTML = '<tr class="no-data"><td colspan="8" class="text-center">No savings found</td></tr>';
                 }
             }
 
@@ -722,7 +773,7 @@
 
                 currentPage = 1;
                 if (visibleRows.length === 0) {
-                    tableBody.innerHTML = '<tr class="no-data"><td colspan="6" class="text-center">No savings found</td></tr>';
+                    tableBody.innerHTML = '<tr class="no-data"><td colspan="8" class="text-center">No savings found</td></tr>';
                 } else {
                     tableBody.innerHTML = '';
                     visibleRows.forEach(row => tableBody.appendChild(row));
@@ -736,8 +787,7 @@
 
             document.getElementById('savingsSearch').addEventListener('input', filterSavings);
         });
-
-        // View saving (placeholder)
+        // View saving
         function viewSaving(savingsId) {
             $.ajax({
                 url: `/savings/${savingsId}`,
@@ -745,16 +795,20 @@
                 success: function (response) {
                     if (response.result === 'success') {
                         const data = response.data;
+                        let proofHtml = data.proof_file ?
+                            `<p><strong>Proof:</strong> <a href="/uploads/deposit_proofs/${data.proof_file}" target="_blank">View Proof</a></p>` :
+                            `<p><strong>Proof:</strong> No Proof</p>`;
                         Swal.fire({
                             title: `Savings Details - ${data.savings_id}`,
                             html: `
-                        <p><strong>Member Name:</strong> ${data.member_name}</p>
-                        <p><strong>Type:</strong> ${data.deposit_type}</p>
-                        <p><strong>Amount:</strong> ${data.amount}</p>
-                        <p><strong>Date:</strong> ${data.date}</p>
-                        <p><strong>Status:</strong> ${data.status}</p>
-                        <p><strong>Can Withdraw:</strong> ${data.can_withdraw ? 'Yes' : 'No'}</p>
-                    `,
+                                <p><strong>Member Name:</strong> ${data.member_name}</p>
+                                <p><strong>Type:</strong> ${data.deposit_type}</p>
+                                <p><strong>Amount:</strong> ${data.amount}</p>
+                                <p><strong>Date:</strong> ${data.date}</p>
+                                <p><strong>Status:</strong> ${data.status}</p>
+                                <p><strong>Can Withdraw:</strong> ${data.can_withdraw ? 'Yes' : 'No'}</p>
+                                ${proofHtml}
+                            `,
                             icon: 'info',
                             confirmButtonColor: '#2ecc71',
                             confirmButtonText: 'OK'
@@ -768,7 +822,6 @@
                 }
             });
         }
-
 
         // Update savings status
         function updateSavingsStatus(savingsId, status) {
@@ -911,7 +964,6 @@
         String.prototype.capitalize = function () {
             return this.charAt(0).toUpperCase() + this.slice(1);
         };
-
 
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"

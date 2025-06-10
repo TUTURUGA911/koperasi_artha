@@ -561,14 +561,38 @@
             text-transform: capitalize;
         }
 
-        .badge-rejected {
-            background: #ef4444;
-            /* Red color */
-            color: white;
-            font-size: 0.8rem;
-            padding: 5px 10px;
-            border-radius: 6px;
+        /* Badge Styles */
+        .badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
             font-weight: 500;
+            display: inline-block;
+            line-height: 1;
+        }
+
+        .badge.pending {
+            background: #bdcc49;
+            /* Purple */
+            color: #ffffff;
+        }
+
+        .badge.active {
+            background: #10b981;
+            /* Bright green */
+            color: #ffffff;
+        }
+
+        .badge.completed {
+            background: #13f50b;
+            /* Yellow-green */
+            color: #ffffff;
+        }
+
+        .badge.rejected {
+            background: #ef4444;
+            /* Red */
+            color: #ffffff;
         }
     </style>
 </head>
@@ -854,38 +878,47 @@
 
                     if (data.transactions.length === 0) {
                         tbody.append(`
-                    <tr>
-                        <td colspan="4" class="text-center">Belum ada transaksi</td>
-                    </tr>
-                `);
+                <tr>
+                    <td colspan="4" class="text-center">Belum ada transaksi</td>
+                </tr>
+            `);
                     } else {
                         data.transactions.forEach(transaction => {
+                            // Gunakan kelas badge sesuai status seperti di simpanan_admin.html
                             let badgeClass = '';
-                            if (transaction.status.toLowerCase() === 'sukses') {
-                                badgeClass = 'badge-success';
-                            } else if (transaction.status.toLowerCase() === 'pending') {
-                                badgeClass = 'badge-warning';
-                            } else if (transaction.status.toLowerCase() === 'belum lunas') {
-                                badgeClass = 'badge-warning';
-                            } else if (transaction.status.toLowerCase() === 'lunas') {
-                                badgeClass = 'badge-susscess';
-                            } else if (transaction.status.toLowerCase() === 'rejected') {
-                                badgeClass = 'badge-rejected';
-                            } else {
-                                badgeClass = 'badge-danger';
+                            let statusText = transaction.status;
+                            switch (transaction.status.toLowerCase()) {
+                                case 'pending':
+                                    badgeClass = 'badge pending';
+                                    break;
+                                case 'active':
+                                    badgeClass = 'badge active';
+                                    break;
+                                case 'completed':
+                                    badgeClass = 'badge completed';
+                                    break;
+                                case 'rejected':
+                                    badgeClass = 'badge rejected';
+                                    break;
+                                case 'belum_lunas':
+                                    badgeClass = 'badge pending';
+                                    statusText = 'Belum Lunas'; // Ubah teks status di sini
+                                    break;
+                                default:
+                                    badgeClass = 'badge warning';
                             }
 
                             const amountClass = transaction.amount < 0 ? 'text-danger' : 'text-success';
                             const amountText = formatCurrency(Math.abs(transaction.amount));
 
                             tbody.append(`
-                        <tr>
-                            <td>${transaction.date}</td>
-                            <td>${transaction.type}</td>
-                            <td class="${amountClass}" data-amount="${transaction.amount}">${amountText}</td>
-                            <td><span class="badge ${badgeClass}">${transaction.status}</span></td>
-                        </tr>
-                    `);
+                    <tr>
+                        <td>${transaction.date}</td>
+                        <td>${transaction.type}</td>
+                        <td class="${amountClass}" data-amount="${transaction.amount}">${amountText}</td>
+                        <td><span class="${badgeClass}">${statusText}</span></td>
+                    </tr>
+                `);
                         });
                     }
                 } else {
